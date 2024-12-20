@@ -1,82 +1,75 @@
-import os
-from collections import Counter
+from pathlib import Path
 
 from PIL import Image
 from PIL.ImageFile import ImageFile
 
 
-def resolve_output_dir(given_output_dir: str) -> str:
-    if given_output_dir is not None:
-        if not os.path.exists(given_output_dir):
-            os.makedirs(given_output_dir)
-        return given_output_dir
-    else:
-        return "./"
+def split_image(image_filepath: str | Path, rows: int, cols: int) -> list[list[ImageFile]]:
+    # Open the image
+    image_path = Path(image_filepath).resolve()
+    image_filename = image_path.stem
+    img = Image.open(image_path)
+    img_width, img_height = img.size
+
+    # Calculate the width and height of each part
+    part_width = img_width // cols
+    part_height = img_height // rows
+
+    output_directory = image_path.parent
+
+    output_images = []
+
+    for row in range(rows):
+        output_images.append([])
+        for col in range(cols):
+            # Define the bounding box for each part
+            left = col * part_width
+            upper = row * part_height
+            right = min((col + 1) * part_width, img_width)
+            lower = min((row + 1) * part_height, img_height)
+
+            # Crop the image to get the part
+            part = img.crop((left, upper, right, lower))
+
+            part_filename = f'{image_filename}_part_{row}_{col}.png'
+            part_path = output_directory / part_filename
+            part.save(part_path)  # Save each part as a new image
+            output_images[row].append(part)
+
+    return output_images
 
 
-def square_image(image: ImageFile) -> ImageFile:
-    im_width, im_height = image.size
+def restore_image(parts_image_matrix: list[list[ImageFile]], output_filepath: str | Path) -> None:
+    rows = len(parts_image_matrix)
+    cols = len(parts_image_matrix[0])
 
-    min_dimension = min(im_width, im_height)
-    max_dimension = max(im_width, im_height)
-    bg_color = determine_bg_color(image)
-    squared_img = Image.new("RGB", (max_dimension, max_dimension), bg_color)
-    offset = int((max_dimension - min_dimension) / 2)
-    if im_width > im_height:
-        squared_img.paste(image, (0, offset))
-    else:
-        squared_img.paste(image, (offset, 0))
+    image_width, image_height = 0, 0
+    for row in range(rows):
+        for col in range(cols):
+            width, height = parts_image_matrix[row][col].size
+            image_width += width
+            image_height += height
+    image_size = image_width // rows, image_height // cols
 
-    return squared_img
+    print(image_size)
+    # Create a new blank image with the original size
+    restored_image = Image.new('RGB', image_size)
 
+    part_width = image_size[0] // cols
+    part_height = image_size[1] // rows
 
-def determine_bg_color(im: ImageFile):
-    im_width, im_height = im.size
-    rgb_im = im.convert('RGBA')
-    all_colors = []
-    areas = [[(0, 0), (im_width, im_height / 10)],
-             [(0, 0), (im_width / 10, im_height)],
-             [(im_width * 9 / 10, 0), (im_width, im_height)],
-             [(0, im_height * 9 / 10), (im_width, im_height)]]
-    for area in areas:
-        start = area[0]
-        end = area[1]
-        for x in range(int(start[0]), int(end[0])):
-            for y in range(int(start[1]), int(end[1])):
-                pix = rgb_im.getpixel((x, y))
-                all_colors.append(pix)
-    return Counter(all_colors).most_common(1)[0][0]
+    # Iterate through each part and paste it into the correct position
+    for row in range(rows):
+        for col in range(cols):
+            # Define where to paste the current part
+            left = col * part_width
+            upper = row * part_height
+            restored_image.paste(parts_image_matrix[row][col], (left, upper))
+
+    restored_image.save(Path(output_filepath))
 
 
-def split_image(image_path: str, rows: int, cols: int, should_square: bool, output_dir: str = None) -> None:
-    im = Image.open(image_path)
-    im_width, im_height = im.size
-    row_width = int(im_width / cols)
-    row_height = int(im_height / rows)
+output = split_image("secret_image.png", 2, 2)
+restore_image(output, 'aaa.png')
 
-    name, ext = os.path.splitext(image_path)
-    name = os.path.basename(name)
-
-    output_dir = resolve_output_dir(output_dir)
-
-    if should_square:
-        squared_im = square_image(im)
-        im = squared_im
-        im_width, im_height = im.size
-        row_width = int(im_width / cols)
-        row_height = int(im_height / rows)
-
-    n = 0
-    for i in range(rows):
-        for j in range(cols):
-            box = (j * row_width, i * row_height,
-                   j * row_width + row_width, i * row_height + row_height)
-            outp = im.crop(box)
-            outp_path = name + "_" + str(n) + ext
-            outp_path = os.path.join(output_dir, outp_path)
-            outp.save(outp_path)
-            n += 1
-
-
-def reverse_split(paths_to_merge: tuple[str], rows: int, cols: int, image_path: str, should_cleanup: bool):
-    ...  # TODO
+print(output)
