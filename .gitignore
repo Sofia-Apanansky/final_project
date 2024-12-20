@@ -2,5 +2,6 @@
 
 *.jpeg
 *.jpg
+*.png
 
 .venv
