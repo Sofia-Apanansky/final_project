@@ -31,9 +31,9 @@ def split_image(image_filepath: str | Path, rows: int, cols: int) -> list[list[I
             # Crop the image to get the part
             part = img.crop((left, upper, right, lower))
 
-            part_filename = f'{image_filename}_part_{row}_{col}.png'
-            part_path = output_directory / part_filename
-            part.save(part_path)  # Save each part as a new image
+            # part_filename = f'{image_filename}_part_{row}_{col}.png'
+            # part_path = output_directory / part_filename
+            # part.save(part_path)  # Save each part as a new image
             output_images[row].append(part)
 
     return output_images
@@ -67,9 +67,3 @@ def restore_image(parts_image_matrix: list[list[ImageFile]], output_filepath: st
             restored_image.paste(parts_image_matrix[row][col], (left, upper))
 
     restored_image.save(Path(output_filepath))
-
-
-output = split_image("secret_image.png", 2, 2)
-restore_image(output, 'aaa.png')
-
-print(output)
