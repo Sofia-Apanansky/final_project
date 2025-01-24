@@ -4,4 +4,6 @@
 *.jpg
 *.png
 
+*.zip
+
 .venv
