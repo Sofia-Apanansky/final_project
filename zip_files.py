@@ -8,6 +8,6 @@ def create_zip_file(filepaths_to_compress: list[str | Path], output_zip: str | P
             zipf.write(file)
 
 
-def extract_zip_file(zip_file_path: str | Path, extract_to: str | Path):
+def extract_zip_file(zip_file_path: str | Path, extract_to_folder: str | Path):
     with zipfile.ZipFile(zip_file_path, 'r') as zipf:
-        zipf.extractall(extract_to)
+        zipf.extractall(extract_to_folder)
