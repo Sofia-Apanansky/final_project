@@ -30,10 +30,6 @@ def split_image(image_filepath: str | Path, rows: int, cols: int) -> list[list[I
 
             # Crop the image to get the part
             part = img.crop((left, upper, right, lower))
-
-            # part_filename = f'{image_filename}_part_{row}_{col}.png'
-            # part_path = output_directory / part_filename
-            # part.save(part_path)  # Save each part as a new image
             output_images[row].append(part)
 
     return output_images
