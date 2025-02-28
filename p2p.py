@@ -1,6 +1,8 @@
 import socket
 import threading
 import struct
+from idlelib.run import get_message_lines
+from pathlib import Path
 from queue import Queue
 from time import sleep
 from typing import Final
@@ -104,3 +106,15 @@ class Peer2Peer:
         self.sender_socket.close()
         self.receiver_socket.close()
         print("Connections closed.")
+
+    def send_file(self, file_path: str | Path):
+        with open(file_path, "rb") as file:
+            file_data = file.read()
+
+        self.send_message(file_data)
+
+    def get_file(self, output_path: str | Path):
+        file_data = self.get_message()
+
+        with open(output_path, "wb") as file:
+            file.write(file_data)
