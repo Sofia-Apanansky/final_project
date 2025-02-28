@@ -26,3 +26,9 @@ def str_to_row_and_column(index_str) -> tuple[int, int]:
     splitted_indices = index_str.split('_')
     row, col = splitted_indices
     return int(row), int(col)
+
+
+def create_random_name_directory(n: int, directory_parent: Path) -> Path:
+    dir_path = directory_parent / generate_random_filename(n)
+    dir_path.mkdir()
+    return dir_path
