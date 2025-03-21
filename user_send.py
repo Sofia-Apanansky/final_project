@@ -23,8 +23,8 @@ def main_user_send() -> None:
         cipher = AESCipher(key)
         encrypted_content = cipher.encrypt(content)
 
-        # image_path = generate_image()
-        image_path = Path("poto-1.jpg").resolve()  # FIXME testing only
+        image_path = temp_directory / generate_random_filename(16, 'png')
+        generate_random_image(image_path)
 
         temp_img_with_hidden_content_path = generate_random_filename(16, 'png')
         hide_message_in_image(image_path, encrypted_content, temp_img_with_hidden_content_path)
