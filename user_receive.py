@@ -1,6 +1,9 @@
 import os
+from time import sleep
+
 from PIL import Image
 from data_info import SplittedImageInfo
+from p2p import Peer2Peer
 from utils import str_to_row_and_column
 from zip_files import extract_zip_file
 from image_metadata import read_metadata_from_image
@@ -8,8 +11,15 @@ from image_split import restore_image
 
 
 def main_user_receive() -> None:
-    file_zip_to_extract = "LFwsHqPSzYsbqlCB.zip"  # מקבלת זאת בשליחה של התקשורת
+    peer_receive = Peer2Peer('127.0.0.1', 5007, 5008)
+    # key = b'1' * 32  # TODO receive from peer
     file_zip_after_extraction = "zip_after_extraction"
+    key = peer_receive.get_message()
+    print(key)
+    file_zip_to_extract = peer_receive.get_file(file_zip_after_extraction)
+
+    # file_zip_to_extract= "LFwsHqPSzYsbqlCB.zip"
+
     extract_zip_file(file_zip_to_extract, file_zip_after_extraction)
     metadata_images = []
     for file in os.listdir(file_zip_after_extraction):
@@ -36,8 +46,13 @@ def main_user_receive() -> None:
         parts_matrix.append(row)
 
     restore_image(parts_matrix, 'my_img.png')
+
+
 #    print(reveal_message_from_image('my_img.png'))
 # need to get the key
 #    key = ...
 #    cipher = AESCipher(key)
 #    new_password = cipher.decrypt(reveal_message_from_image('my_img.png'))
+
+
+main_user_receive()
