@@ -1,6 +1,9 @@
 import random
 import string
+from io import BytesIO
 from pathlib import Path
+
+from PIL import Image
 
 
 def get_project_directory() -> Path:
@@ -32,3 +35,13 @@ def create_random_name_directory(n: int, directory_parent: Path) -> Path:
     dir_path = directory_parent / generate_random_filename(n)
     dir_path.mkdir()
     return dir_path
+
+
+def jpg_to_png(jpg_bytes: bytes) -> bytes:
+    img = Image.open(BytesIO(jpg_bytes))
+
+    # Convert to PNG format in memory
+    png_bytes_io = BytesIO()
+    img.save(png_bytes_io, format="PNG")
+
+    return png_bytes_io.getvalue()
