@@ -5,7 +5,7 @@ import requests
 
 from utils import jpg_to_png
 
-API_KEY = ""
+API_KEY = ""  # Fixme store in another place
 API_NINJAS_RANDOM_IMAGE_ENDPOINT = "https://api.api-ninjas.com/v1/randomimage?width={width}&height={height}"
 
 headers = {"X-Api-Key": API_KEY}
