@@ -1,3 +1,4 @@
+import shutil
 from typing import Final
 
 from aes_cipher import AESCipher
@@ -16,12 +17,13 @@ def main_user_send() -> None:
     # key = random.randbytes(32)  # TODO consider how to generate the key
     key = b'1' * 32
     peer_send = Peer2Peer('127.0.0.1', 5008, 5007)
-    temp_directory = create_random_name_directory(16, get_project_directory())
+    peer_send.send_message(key)
 
     while True:
+        temp_directory = create_random_name_directory(16, get_project_directory())
+
         content = input("Write content: ")[:MAX_CONTENT_LENGTH]
-        # TODO send the key over the socket
-        peer_send.send_message(key)
+
         cipher = AESCipher(key)
         encrypted_content = cipher.encrypt(content)
 
@@ -41,16 +43,8 @@ def main_user_send() -> None:
                 add_metadata_to_image(image, row_and_column_to_str(i, j), part_path)
 
         parts_zip_path = temp_directory / generate_random_filename(16, 'zip')
-        zip_file_to_send = create_zip_file(parts_paths, parts_zip_path)  # maybe put this in the other peer
+        create_zip_file(parts_paths, parts_zip_path)
 
-        # TODO send zip over tcp socket
-        for i in parts_paths:
-            peer_send.send_file(zip_file_to_send)  # send the zip in parts
+        peer_send.send_file(parts_zip_path)  # send the zip in parts
 
-        # for f in parts_paths:
-        #     f.unlink()  # Delete part
-        #
-        # parts_zip_path.unlink()  # Delete zip
-
-
-main_user_send()
+        shutil.rmtree(temp_directory)
