@@ -31,10 +31,7 @@ def main_user_send() -> None:
         temp_img_with_hidden_content_path = temp_directory / generate_random_filename(16, 'png')
         hide_message_in_image(image_path, encrypted_content, temp_img_with_hidden_content_path)
 
-        row = int(input("Write row: "))  # TODO consider to set as constant
-        cols = int(input("Write cols: "))  # TODO consider to set as constant
-
-        images_matrix = split_image(temp_img_with_hidden_content_path, row, cols)
+        images_matrix = split_image(temp_img_with_hidden_content_path)
         parts_paths = []
 
         for i, row in enumerate(images_matrix):

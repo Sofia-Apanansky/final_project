@@ -4,7 +4,7 @@ from PIL import Image
 from PIL.ImageFile import ImageFile
 
 
-def split_image(image_filepath: str | Path, rows: int, cols: int) -> list[list[ImageFile]]:
+def split_image(image_filepath: str | Path, rows: int = 6, cols: int = 8) -> list[list[ImageFile]]:
     # Open the image
     image_path = Path(image_filepath).resolve()
     image_filename = image_path.stem
