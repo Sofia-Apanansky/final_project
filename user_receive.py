@@ -23,7 +23,7 @@ def main_user_receive() -> None:
 
         parts_zip_path = temp_directory / generate_random_filename(16, 'zip')
 
-        peer_receive.get_file(parts_zip_path)  # ...
+        peer_receive.get_file(parts_zip_path)
 
         parts_directory = create_random_name_directory(16, temp_directory)
 
