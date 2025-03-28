@@ -14,8 +14,12 @@ from image_metadata import read_metadata_from_image
 from image_split import restore_image
 
 
-def main_user_receive() -> None:
-    peer_receive = Peer2Peer('127.0.0.1', 5007, 5008)
+def start_user_receive(peer_ip: str) -> None:
+    user_receive_loop(peer_ip)
+
+
+def user_receive_loop(peer_ip: str) -> None:
+    peer_receive = Peer2Peer(peer_ip, 5007, 5008)
 
     key = peer_receive.get_message()
 

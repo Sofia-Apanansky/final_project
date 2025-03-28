@@ -13,10 +13,14 @@ from zip_files import create_zip_file
 MAX_CONTENT_LENGTH: Final[int] = 115167
 
 
-def main_user_send() -> None:
+def start_user_send(peer_ip: str) -> None:
+    user_send_loop(peer_ip)
+
+
+def user_send_loop(peer_ip: str) -> None:
     # key = random.randbytes(32)  # TODO consider how to generate the key
     key = b'1' * 32
-    peer_send = Peer2Peer('127.0.0.1', 5008, 5007)
+    peer_send = Peer2Peer(peer_ip, 5008, 5007)
     peer_send.send_message(key)
 
     while True:
