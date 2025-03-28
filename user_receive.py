@@ -1,4 +1,5 @@
 import os
+import shutil
 from time import sleep
 
 from PIL import Image
@@ -62,3 +63,5 @@ def main_user_receive() -> None:
         content = cipher.decrypt(encrypted_content)
 
         print(f"Content: {content}")
+
+        shutil.rmtree(temp_directory)
