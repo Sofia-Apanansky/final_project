@@ -2,8 +2,9 @@ from base64 import b64decode
 from pathlib import Path
 
 import requests
+from PIL import Image
 
-from utils import jpg_to_png
+from utils import jpg_to_png, generate_random_color
 
 API_KEY = ""  # Fixme store in another place
 API_NINJAS_RANDOM_IMAGE_ENDPOINT = "https://api.api-ninjas.com/v1/randomimage?width={width}&height={height}"
@@ -26,7 +27,8 @@ def fetch_image_from_api(width: int, height: int) -> bytes:
 def generate_random_image(output_image_path: str | Path, width: int = 640, height: int = 480) -> None:
     img_bytes = fetch_image_from_api(width, height)
     if not img_bytes:
-        # TODO default img
+        default_img = Image.new("RGB", (width, height), color=generate_random_color())
+        default_img.save(output_image_path, format="PNG")
         return
 
     png_img_bytes = jpg_to_png(img_bytes)

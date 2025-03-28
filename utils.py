@@ -45,3 +45,10 @@ def jpg_to_png(jpg_bytes: bytes) -> bytes:
     img.save(png_bytes_io, format="PNG")
 
     return png_bytes_io.getvalue()
+
+
+def generate_random_color() -> tuple[int, int, int]:
+    r = random.randint(0, 255)
+    g = random.randint(0, 255)
+    b = random.randint(0, 255)
+    return r, g, b
