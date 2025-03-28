@@ -47,7 +47,6 @@ def restore_image(parts_image_matrix: list[list[ImageFile]], output_filepath: st
             image_height += height
     image_size = image_width // rows, image_height // cols
 
-    print(image_size)
     # Create a new blank image with the original size
     restored_image = Image.new('RGB', image_size)
 
