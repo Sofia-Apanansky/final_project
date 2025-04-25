@@ -5,5 +5,5 @@ from PIL.ImageFile import ImageFile
 @dataclass
 class SplittedImageInfo:
     row: int
-    column : int
+    column: int
     image: ImageFile

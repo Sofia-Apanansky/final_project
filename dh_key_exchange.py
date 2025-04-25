@@ -1,5 +1,5 @@
 class DH_Endpoint(object):
-    def __init__(self, p:int, g:int, private_key:int):
+    def __init__(self, p: int, g: int, private_key: int):
         self.p = p
         self.g = g
         self.private_key = private_key

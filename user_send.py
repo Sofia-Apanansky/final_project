@@ -6,7 +6,8 @@ from p2p import Peer2Peer
 from steganography import hide_message_in_image
 from image_split import split_image
 from image_metadata import add_metadata_to_image
-from utils import generate_random_filename, row_and_column_to_str, get_project_directory, create_random_name_directory, random_prime_number, int_to_bytes, bytes_to_int
+from utils import generate_random_filename, row_and_column_to_str, get_project_directory, create_random_name_directory, \
+    random_prime_number, int_to_bytes, bytes_to_int
 
 from zip_files import create_zip_file
 from dh_key_exchange import DH_Endpoint
@@ -20,24 +21,24 @@ def start_user_send(peer_ip: str) -> None:
 
 def user_send_loop(peer_ip: str) -> None:
     p = random_prime_number()
-    g =random_prime_number()
-    private_key =random_prime_number()
+    g = random_prime_number()
+    private_key = random_prime_number()
     peer_send = Peer2Peer(peer_ip, 5008, 5007)
 
-    send_key=DH_Endpoint(p,g,private_key)
-    public_key= send_key.generate_public_key()
+    send_key = DH_Endpoint(p, g, private_key)
+    public_key = send_key.generate_public_key()
 
-    p=int_to_bytes(p)
-    g=int_to_bytes(g)
-    public_key=int_to_bytes(public_key)
+    p = int_to_bytes(p)
+    g = int_to_bytes(g)
+    public_key = int_to_bytes(public_key)
 
     peer_send.send_message(p)
     peer_send.send_message(g)
     peer_send.send_message(public_key)
 
-    key_public_receiver = peer_send.get_message() #public_key_receiver
-    key_public_receiver= bytes_to_int(key_public_receiver)
-    key= int_to_bytes(send_key.generate_full_key(key_public_receiver))
+    key_public_receiver = peer_send.get_message()  # public_key_receiver
+    key_public_receiver = bytes_to_int(key_public_receiver)
+    key = int_to_bytes(send_key.generate_full_key(key_public_receiver))
 
     while True:
         temp_directory = create_random_name_directory(16, get_project_directory())

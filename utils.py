@@ -53,15 +53,16 @@ def generate_random_color() -> tuple[int, int, int]:
     b = random.randint(0, 255)
     return r, g, b
 
+
 def random_prime_number(min_digits=3, max_digits=5):
-    min_value = 10**(min_digits - 1)
-    max_value = 10**max_digits - 1
+    min_value = 10 ** (min_digits - 1)
+    max_value = 10 ** max_digits - 1
     primes = []
     for num in range(min_value, max_value + 1):
         if num < 2:
             continue
         is_prime = True
-        for i in range(2, int(num**0.5) + 1):
+        for i in range(2, int(num ** 0.5) + 1):
             if num % i == 0:
                 is_prime = False
                 break
@@ -69,12 +70,13 @@ def random_prime_number(min_digits=3, max_digits=5):
             primes.append(num)
     return random.choice(primes) if primes else None
 
-def int_to_bytes(number:int)-> bytes:
+
+def int_to_bytes(number: int) -> bytes:
     num_bytes = (number.bit_length() + 7) // 8
     b = number.to_bytes(num_bytes, byteorder='little')
     return b
 
-def bytes_to_int(num:bytes)->int:
+
+def bytes_to_int(num: bytes) -> int:
     k = int.from_bytes(num, byteorder='little')
     return k
-
