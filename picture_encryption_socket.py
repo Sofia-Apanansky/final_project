@@ -22,6 +22,7 @@ from zip_files import create_zip_file, extract_zip_file
 
 MAX_CONTENT_LENGTH: Final[int] = 115167
 
+
 class PictureEncryptionSocket:
     def __init__(self, peer_ip: str) -> None:
         self.peer_ip = peer_ip
@@ -29,23 +30,28 @@ class PictureEncryptionSocket:
         self.recv_queue = Queue()
         self.sender_thread = Thread()
         self.receiver_thread = Thread()
-        self.send_loop = start_user_send
-        self.receive_loop = start_user_receive
+        self.is_connected = False
 
     def connect(self) -> None:
-        self.sender_thread = Thread(target=self.send_loop, args=(self.peer_ip,))
-        self.receiver_thread = Thread(target=self.receive_loop, args=(self.peer_ip,))
+        self.sender_thread = Thread(target=self.send_loop)
+        self.receiver_thread = Thread(target=self.receive_loop)
 
         self.sender_thread.start()
         self.receiver_thread.start()
+        
+        self.is_connected = True
 
     def send(self, data: bytes) -> None:
+        if not self.is_connected:
+            raise Exception("Socket not connected")
         self.send_queue.put(data)
 
     def receive(self) -> bytes:
+        if not self.is_connected:
+            raise Exception("Socket not connected")
         return self.recv_queue.get()
 
-    def send_loop(self): ##
+    def send_loop(self):  # TODO Private method
         p = random_prime_number()
         g = random_prime_number()
         private_key = random_prime_number()
@@ -72,7 +78,7 @@ class PictureEncryptionSocket:
             content = self.send_queue.get()[:MAX_CONTENT_LENGTH]
 
             cipher = AESCipher(key)
-            encrypted_content = cipher.encrypt(content)
+            encrypted_content = cipher.encrypt(content.decode())
 
             image_path = temp_directory / generate_random_filename(16, 'png')
             generate_random_image(image_path)
@@ -96,71 +102,69 @@ class PictureEncryptionSocket:
 
             shutil.rmtree(temp_directory)
 
+    def receive_loop(self):
+        key_private = random_prime_number()
+        peer_receive = Peer2Peer(self.peer_ip, 5007, 5008)
 
-def receive_loop(self):
-    key_private = random_prime_number()
-    peer_receive = Peer2Peer(self.peer_ip , 5007, 5008)
+        p = peer_receive.get_message()
+        g = peer_receive.get_message()
+        key_public_sender = peer_receive.get_message()
 
-    p = peer_receive.get_message()
-    g = peer_receive.get_message()
-    key_public_sender = peer_receive.get_message()
+        p = bytes_to_int(p)
+        g = bytes_to_int(g)
+        key_public_sender = bytes_to_int(key_public_sender)
 
-    p = bytes_to_int(p)
-    g = bytes_to_int(g)
-    key_public_sender = bytes_to_int(key_public_sender)
+        receive_key = DH_Endpoint(p, g, key_private)
+        public_key = receive_key.generate_public_key()
 
-    receive_key = DH_Endpoint(p, g, key_private)
-    public_key = receive_key.generate_public_key()
+        public_key = int_to_bytes(public_key)
+        peer_receive.send_message(public_key)
 
-    public_key = int_to_bytes(public_key)
-    peer_receive.send_message(public_key)
+        key = int_to_bytes(receive_key.generate_full_key(key_public_sender))
 
-    key = int_to_bytes(receive_key.generate_full_key(key_public_sender))
+        while True:
+            temp_directory = create_random_name_directory(16, get_project_directory())
 
-    while True:
-        temp_directory = create_random_name_directory(16, get_project_directory())
+            parts_zip_path = temp_directory / generate_random_filename(16, 'zip')
 
-        parts_zip_path = temp_directory / generate_random_filename(16, 'zip')
+            peer_receive.get_file(parts_zip_path)
 
-        peer_receive.get_file(parts_zip_path)
+            parts_directory = create_random_name_directory(16, temp_directory)
 
-        parts_directory = create_random_name_directory(16, temp_directory)
+            extract_zip_file(parts_zip_path, parts_directory)
 
-        extract_zip_file(parts_zip_path, parts_directory)
+            metadata_images = []
+            for file in os.listdir(parts_directory):
+                file_path = parts_directory / file
+                index_str = read_metadata_from_image(file_path)
 
-        metadata_images = []
-        for file in os.listdir(parts_directory):
-            file_path = parts_directory / file
-            index_str = read_metadata_from_image(file_path)
+                img = Image.open(file_path)
+                row, col = str_to_row_and_column(index_str)
+                metadata_images.append(SplittedImageInfo(row, col, img))
 
-            img = Image.open(file_path)
-            row, col = str_to_row_and_column(index_str)
-            metadata_images.append(SplittedImageInfo(row, col, img))
+            metadata_images.sort(key=lambda info: (info.row, info.column))
 
-        metadata_images.sort(key=lambda info: (info.row, info.column))
+            num_of_rows = metadata_images[-1].row + 1
+            num_of_cols = metadata_images[-1].column + 1
 
-        num_of_rows = metadata_images[-1].row + 1
-        num_of_cols = metadata_images[-1].column + 1
+            parts_matrix = []
 
-        parts_matrix = []
+            img_index = 0
+            for i in range(num_of_rows):
+                row = []
+                for j in range(num_of_cols):
+                    row.append(metadata_images[img_index].image)
+                    img_index += 1
+                parts_matrix.append(row)
 
-        img_index = 0
-        for i in range(num_of_rows):
-            row = []
-            for j in range(num_of_cols):
-                row.append(metadata_images[img_index].image)
-                img_index += 1
-            parts_matrix.append(row)
+            restored_img_path = temp_directory / generate_random_filename(16, 'png')
+            restore_image(parts_matrix, restored_img_path)
 
-        restored_img_path = temp_directory / generate_random_filename(16, 'png')
-        restore_image(parts_matrix, restored_img_path)
+            encrypted_content = reveal_message_from_image(restored_img_path)
 
-        encrypted_content = reveal_message_from_image(restored_img_path)
+            cipher = AESCipher(key)
+            content = cipher.decrypt(encrypted_content)
 
-        cipher = AESCipher(key)
-        content = cipher.decrypt(encrypted_content)
+            self.recv_queue.put(content.encode())
 
-        self.recv_queue.put(content)
-
-        shutil.rmtree(temp_directory)
-
+            shutil.rmtree(temp_directory)
