@@ -12,27 +12,57 @@ ENCODING = 'utf-8'
 
 class ChatClient:
     def __init__(self, master):
+        self.username = None
         self.master = master
         self.client_socket: PictureEncryptionSocket = None
         self.receive_thread = None
         self.is_connected = False
         self.stop_thread = False  # Flag to signal thread termination
 
+
+        def custom_askstring(title, prompt, parent=None, width=600, height=500):
+            dialog = tk.Toplevel(parent)
+            dialog.title(title)
+            dialog.geometry(f"{width}x{height}")
+            dialog.grab_set()  # Modal behavior
+
+            tk.Label(dialog, text=prompt, font=("Arial", 14)).pack(pady=20)
+
+            user_input = tk.StringVar()
+            entry = tk.Entry(dialog, textvariable=user_input, font=("Arial", 14), width=50)
+            entry.pack(pady=10)
+            entry.focus_set()
+
+            def on_ok():
+                dialog.result = user_input.get()
+                dialog.destroy()
+
+            def on_cancel():
+                dialog.result = None
+                dialog.destroy()
+
+            btn_frame = tk.Frame(dialog)
+            btn_frame.pack(pady=20)
+            tk.Button(btn_frame, text="OK", command=on_ok, width=10).pack(side=tk.LEFT, padx=10)
+            tk.Button(btn_frame, text="Cancel", command=on_cancel, width=10).pack(side=tk.RIGHT, padx=10)
+
+            parent.wait_window(dialog)
+            return dialog.result
+
         # --- Get Server Info ---
-        # Use simpledialog for initial setup
-        self.host = simpledialog.askstring("Server Address", "Enter server IP:", parent=master)
+        self.host = custom_askstring("Other User Address", "Enter user IP:", parent=master)
         if not self.host:  # User cancelled
             master.destroy()
             sys.exit("Connection cancelled by user.")
 
-        self.username = simpledialog.askstring("Username", "Enter your username:", parent=master)
+        self.host = custom_askstring("Username", "Enter your username:", parent=master)
         if not self.username:  # User cancelled or entered empty
             self.username = f"User_{int(time.time()) % 10000}"  # Default username
             messagebox.showwarning("Username", f"No username entered. Using default: {self.username}", parent=master)
 
         # --- GUI Setup ---
-        master.title(f"Chat Client - {self.username}")
-        master.geometry("450x550")  # Adjusted size
+        master.title(f"Chat user - {self.username}")
+        master.geometry("600x550")  # Adjusted size
 
         # Frame for connection status/buttons (optional)
         self.status_frame = tk.Frame(master)
@@ -160,7 +190,7 @@ class ChatClient:
                 self.stop_thread = True
                 if self.client_socket:
                     try:
-                        self.client_socket.close() # TODO add close to socket
+                        self.client_socket.close()  # TODO add close to socket
                     except socket.error:
                         pass
                     self.client_socket = None
@@ -196,12 +226,12 @@ class ChatClient:
                 # Optionally send a "disconnecting" message
                 # self.client_socket.sendall(f"{self.username} is disconnecting.".encode(ENCODING))
                 # Shutdown signals intent to close, can help unblock recv on server faster
-                self.client_socket.shutdown(socket.SHUT_RDWR) # TODO
+                self.client_socket.shutdown(socket.SHUT_RDWR)  # TODO
             except (socket.error, OSError):
                 print("Error during socket shutdown (already closed or broken?).")  # Ignore errors here
             finally:
                 try:
-                    self.client_socket.close() # TODO
+                    self.client_socket.close()  # TODO
                 except socket.error:
                     pass  # Ignore if already closed
                 self.client_socket = None
