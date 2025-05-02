@@ -51,7 +51,7 @@ class PictureEncryptionSocket:
             raise Exception("Socket not connected")
         return self.recv_queue.get()
 
-    def send_loop(self):  # TODO Private method
+    def __send_loop(self):
         p = random_prime_number()
         g = random_prime_number()
         private_key = random_prime_number()
@@ -102,7 +102,7 @@ class PictureEncryptionSocket:
 
             shutil.rmtree(temp_directory)
 
-    def receive_loop(self):
+    def __receive_loop(self):
         key_private = random_prime_number()
         peer_receive = Peer2Peer(self.peer_ip, 5007, 5008)
 
