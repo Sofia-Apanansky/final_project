@@ -33,8 +33,8 @@ class PictureEncryptionSocket:
         self.is_connected = False
 
     def connect(self) -> None:
-        self.sender_thread = Thread(target=self.send_loop)
-        self.receiver_thread = Thread(target=self.receive_loop)
+        self.sender_thread = Thread(target=self.__send_loop)
+        self.receiver_thread = Thread(target=self.__receive_loop)
 
         self.sender_thread.start()
         self.receiver_thread.start()
