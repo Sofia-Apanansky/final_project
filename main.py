@@ -1,23 +1,25 @@
 from threading import Thread
 
-from user_receive import start_user_receive
-from user_send import start_user_send
+from picture_encryption_socket import PictureEncryptionSocket
+def send(a: PictureEncryptionSocket):
+    while True:
+        message= input()
+        a.send(message.encode())
 
-
-def start(peer_ip: str):
-    sender_thread = Thread(target=start_user_send, args=(peer_ip,))
-    receiver_thread = Thread(target=start_user_receive, args=(peer_ip,))
-
-    sender_thread.start()
-    receiver_thread.start()
-
-    sender_thread.join()
-    receiver_thread.join()
-
-
-def main():
-    start('127.0.0.1')
-
+def receive(a: PictureEncryptionSocket):
+    while True:
+        print(a.receive().decode())
 
 if __name__ == '__main__':
-    main()
+    a= PictureEncryptionSocket('127.0.0.1')
+    a.connect()
+
+    send_thread= Thread(target=send,args=(a,))
+    receive_thread= Thread(target=receive,args=(a,))
+
+    send_thread.start()
+    receive_thread.start()
+
+    send_thread.join()
+    receive_thread.join()
+
