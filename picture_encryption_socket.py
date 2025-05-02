@@ -14,8 +14,6 @@ from image_split import restore_image, split_image
 from p2p import Peer2Peer
 from random_image import generate_random_image
 from steganography import hide_message_in_image, reveal_message_from_image
-from user_receive import start_user_receive
-from user_send import start_user_send
 from utils import (bytes_to_int, create_random_name_directory, generate_random_filename, get_project_directory,
                    int_to_bytes, random_prime_number, row_and_column_to_str, str_to_row_and_column)
 from zip_files import create_zip_file, extract_zip_file
