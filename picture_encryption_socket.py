@@ -23,6 +23,7 @@ MAX_CONTENT_LENGTH: Final[int] = 115167
 
 class PictureEncryptionSocket:
     def __init__(self, peer_ip: str) -> None:
+        self.stop_event = None
         self.peer_ip = peer_ip
         self.send_queue = Queue()
         self.recv_queue = Queue()
@@ -36,7 +37,7 @@ class PictureEncryptionSocket:
 
         self.sender_thread.start()
         self.receiver_thread.start()
-        
+
         self.is_connected = True
 
     def send(self, data: bytes) -> None:
@@ -48,6 +49,33 @@ class PictureEncryptionSocket:
         if not self.is_connected:
             raise Exception("Socket not connected")
         return self.recv_queue.get()
+
+    def close(self) -> None:
+        if not self.is_connected:
+            return
+        self.is_connected = False
+        self.stop_event.set()  # Signal threads to stop
+
+        self.send_queue.put(None)
+        self.recv_queue.put(b'')
+
+        if self.sender_thread.is_alive():
+            self.sender_thread.join(timeout=1)
+        if self.receiver_thread.is_alive():
+            self.receiver_thread.join(timeout=1)
+        print("Connection closed.")
+
+#    def shutdown(self, socket:int) -> None:
+#        self.stop_event.set()
+
+#        if self.sender_thread.is_alive():
+#            self.send_queue.put(None)  # Unblock sender thread if waiting
+#            self.sender_thread.join(timeout=1)
+#            print("[INFO] Sender thread stopped.")
+
+#        if self.receiver_thread.is_alive():
+#            self.receiver_thread.join(timeout=1)
+#            print("[INFO] Receiver thread stopped.")
 
     def __send_loop(self):
         p = random_prime_number()
