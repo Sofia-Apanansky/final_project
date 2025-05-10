@@ -14,7 +14,7 @@ class ChatClient:
     def __init__(self, master):
         self.username = None
         self.master = master
-        self.client_socket: PictureEncryptionSocket = None
+        self.client_socket = None
         self.receive_thread = None
         self.is_connected = False
         self.stop_thread = False  # Flag to signal thread termination
@@ -49,18 +49,21 @@ class ChatClient:
             parent.wait_window(dialog)
             return dialog.result
 
+        self.master.withdraw()
+
         # --- Get Server Info ---
         self.host = custom_askstring("Other User Address", "Enter user IP:", parent=master)
-        if not self.host:  # User cancelled
+        if not self.host:
             master.destroy()
             sys.exit("Connection cancelled by user.")
 
-        self.host = custom_askstring("Username", "Enter your username:", parent=master)
-        if not self.username:  # User cancelled or entered empty
-            self.username = f"User_{int(time.time()) % 10000}"  # Default username
+        self.username = custom_askstring("Username", "Enter your username:", parent=master)
+        if not self.username:
+            self.username = f"User_{int(time.time()) % 10000}"
             messagebox.showwarning("Username", f"No username entered. Using default: {self.username}", parent=master)
 
         # --- GUI Setup ---
+        self.master.deiconify()
         master.title(f"Chat user - {self.username}")
         master.geometry("600x550")  # Adjusted size
 
@@ -190,7 +193,7 @@ class ChatClient:
                 self.stop_thread = True
                 if self.client_socket:
                     try:
-                        self.client_socket.close()  # TODO add close to socket
+                        self.client_socket.close()
                     except socket.error:
                         pass
                     self.client_socket = None
@@ -204,7 +207,7 @@ class ChatClient:
         self.message_area.config(state=tk.DISABLED)  # Disable writing
 
     def display_message_remote(self, message):
-        """ Displays a received message - MUST be called via root.after from receive thread. """
+        """ Displays a received message - MUST be called via root. after from receive thread. """
         # This runs in the main thread
         self.message_area.config(state=tk.NORMAL)
         self.message_area.insert(tk.END, message)
@@ -231,21 +234,15 @@ class ChatClient:
                 print("Error during socket shutdown (already closed or broken?).")  # Ignore errors here
             finally:
                 try:
-                    self.client_socket.close()  # TODO
+                    self.client_socket.close()
                 except socket.error:
                     pass  # Ignore if already closed
                 self.client_socket = None
                 print("Client socket closed.")
 
-        # Wait briefly for the thread to notice the flag (optional, but good practice)
-        # if self.receive_thread and self.receive_thread.is_alive():
-        #     self.receive_thread.join(timeout=0.5) # Wait max 0.5 sec
-
         print("Destroying master window.")
         self.master.destroy()
-        # Ensure the script exits if the window is closed externally
         sys.exit(0)
-
 
 # --- Main Execution ---
 if __name__ == "__main__":
