@@ -1,10 +1,13 @@
 import tkinter as tk
-from tkinter import scrolledtext, messagebox, colorchooser, font
+from tkinter import scrolledtext, colorchooser, font
 import socket
 import threading
 import sys
 import time
+from tkinter import ttk
+from tkinter import messagebox
 from datetime import datetime
+import tkinter.filedialog as filedialog
 
 from picture_encryption_socket import PictureEncryptionSocket
 
@@ -12,6 +15,7 @@ ENCODING = 'utf-8'
 
 class ChatClient:
     def __init__(self, master):
+        self.is_saving_enabled = True  # Initially, saving is disabled
         self.bg_color = None
         self.username = None
         self.master = master
@@ -41,9 +45,17 @@ class ChatClient:
             dialog.geometry("700x400")
             dialog.grab_set()
 
-            tk.Label(dialog, text="Enter IP address of the other user:", font=("Arial", 14)).pack(pady=10)
+            tk.Label(dialog, text="Select IP address of the other user:", font=("Arial", 14)).pack(pady=10)
+
             ip_var = tk.StringVar()
-            tk.Entry(dialog, textvariable=ip_var, font=("Arial", 13), width=50).pack()
+            ip_choices = ["127.0.0.1", "192.168.1.92"]
+            ip_dropdown_frame = tk.Frame(dialog)
+            ip_dropdown_frame.pack()
+
+            ip_dropdown = ttk.Combobox(ip_dropdown_frame, textvariable=ip_var, values=ip_choices, font=("Arial", 13),
+                                       width=47)
+            ip_dropdown.pack(side=tk.LEFT, padx=(0, 5))
+            ip_dropdown.set(ip_choices[0])  # Set default selection
 
             tk.Label(dialog, text="Enter your username:", font=("Arial", 14)).pack(pady=10)
             username_var = tk.StringVar()
@@ -125,6 +137,9 @@ class ChatClient:
         self.theme_button = tk.Button(self.toolbar, text="🌓 Toggle Theme", command=self.toggle_theme)
         self.theme_button.pack(side=tk.LEFT, padx=5)
 
+        self.save_button = tk.Button(self.toolbar, text="💲 Save Chat", command=self.save_chat_to_file)
+        self.save_button.pack(side=tk.LEFT, padx=5)
+
         self.status_frame = tk.Frame(self.main_frame)
         self.status_frame.pack(fill=tk.X)
         self.status_label = tk.Label(self.status_frame, text="Status: Disconnected", fg="red")
@@ -153,6 +168,34 @@ class ChatClient:
         master.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         self.connect_to_server()
+
+    def save_chat_to_file(self):
+        print("Save chat method triggered.")  # Debugging line
+
+        # Ask the user for a filename and location (using a file dialog)
+        filename = filedialog.asksaveasfilename(
+            defaultextension=".txt",
+            filetypes=[("Text Files", "*.txt")],
+            initialfile=f"Chat_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.txt",  # Default name with timestamp
+            title="Save Chat As"
+        )
+
+        # If the user cancels the dialog (filename is an empty string), use the default timestamp name
+        if not filename:
+            # Use the default filename
+            filename = f"Chat_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.txt"
+
+        try:
+            content = self.message_area.get("1.0", tk.END).strip()
+            if not content:
+                messagebox.showwarning("No Content", "There are no messages to save.", parent=self.master)
+                return
+
+            with open(filename, "w", encoding="utf-8") as f:
+                f.write(content)
+            messagebox.showinfo("Chat Saved", f"Chat saved to {filename}", parent=self.master)
+        except Exception as e:
+            messagebox.showerror("Save Error", f"Failed to save chat:\n{e}", parent=self.master)
 
     def choose_bg_color(self):
         color = colorchooser.askcolor(title="Choose Chat Background Color")[1]
@@ -345,16 +388,21 @@ class ChatClient:
                     self.client_socket = None
 
     def display_message_local(self, message):
-        self.message_area.config(state=tk.NORMAL)
-        self.message_area.insert(tk.END, message + "\n", "right_bubble")
-        self.message_area.see(tk.END)
-        self.message_area.config(state=tk.DISABLED)
+        self.message_area.configure(state=tk.NORMAL)
+        self.message_area.insert(tk.END, message + "\n", "right_bubble")  # Add newline for each message
+        self.message_area.configure(state=tk.DISABLED)
+        self.message_area.yview(tk.END)
 
     def display_message_remote(self, message):
-        self.message_area.config(state=tk.NORMAL)
-        self.message_area.insert(tk.END, message + "\n", "left_bubble")
-        self.message_area.see(tk.END)
-        self.message_area.config(state=tk.DISABLED)
+        self.message_area.configure(state=tk.NORMAL)
+        self.message_area.insert(tk.END, message + "\n", "left_bubble")  # Add newline for each message
+        self.message_area.configure(state=tk.DISABLED)
+        self.message_area.yview(tk.END)
+
+    def send_message(self, message):
+        self.display_message_local(f"{self.username}: {message}\n")
+        self.client_socket.send(message.encode("utf-8"))
+        self.message_entry.delete(0, tk.END)
 
     def on_closing(self, show_error=True):
         if show_error and self.is_connected:
