@@ -1,40 +1,79 @@
 import tkinter as tk
-from tkinter import scrolledtext, messagebox, simpledialog
+from tkinter import scrolledtext, messagebox, colorchooser, font
 import socket
 import threading
 import sys
 import time
+from datetime import datetime
 
 from picture_encryption_socket import PictureEncryptionSocket
 
 ENCODING = 'utf-8'
 
-
 class ChatClient:
     def __init__(self, master):
+        self.bg_color = None
         self.username = None
         self.master = master
         self.client_socket = None
         self.receive_thread = None
         self.is_connected = False
-        self.stop_thread = False  # Flag to signal thread termination
+        self.stop_thread = False
 
+        self.theme = "light"  # Default theme
+        self.send_color_light = "#c8e6c9"
+        self.receive_color_light = "#e1f5fe"
+        self.send_color_dark = "#4caf50"
+        self.receive_color_dark = "#7e57c2"
+        self.bg_light = "#ffffff"
+        self.bg_dark = "#2b2b2b"
+        self.text_light = "#000000"
+        self.text_dark = "#ffffff"
 
-        def custom_askstring(title, prompt, parent=None, width=600, height=500):
-            dialog = tk.Toplevel(parent)
-            dialog.title(title)
-            dialog.geometry(f"{width}x{height}")
-            dialog.grab_set()  # Modal behavior
+        self.send_color = self.send_color_light
+        self.receive_color = self.receive_color_light
+        self.font_family = "Segue UI"
+        self.font_size = 11
 
-            tk.Label(dialog, text=prompt, font=("Arial", 14)).pack(pady=20)
+        def custom_askstring_and_colors():
+            dialog = tk.Toplevel(master)
+            dialog.title("Chat Configuration")
+            dialog.geometry("700x400")
+            dialog.grab_set()
 
-            user_input = tk.StringVar()
-            entry = tk.Entry(dialog, textvariable=user_input, font=("Arial", 14), width=50)
-            entry.pack(pady=10)
-            entry.focus_set()
+            tk.Label(dialog, text="Enter IP address of the other user:", font=("Arial", 14)).pack(pady=10)
+            ip_var = tk.StringVar()
+            tk.Entry(dialog, textvariable=ip_var, font=("Arial", 13), width=50).pack()
+
+            tk.Label(dialog, text="Enter your username:", font=("Arial", 14)).pack(pady=10)
+            username_var = tk.StringVar()
+            tk.Entry(dialog, textvariable=username_var, font=("Arial", 13), width=50).pack()
+
+            color_frame = tk.Frame(dialog)
+            color_frame.pack(pady=20)
+
+            tk.Label(color_frame, text="Bubble Colors:", font=("Arial", 13)).grid(row=0, columnspan=2, pady=5)
+
+            def choose_send_color():
+                color = colorchooser.askcolor(title="Choose Sent Message Color")[1]
+                if color:
+                    self.send_color = color
+                    send_color_btn.config(bg=color)
+
+            def choose_receive_color():
+                color = colorchooser.askcolor(title="Choose Received Message Color")[1]
+                if color:
+                    self.receive_color = color
+                    receive_color_btn.config(bg=color)
+
+            send_color_btn = tk.Button(color_frame, text="Sent Message Color", command=choose_send_color, width=25)
+            send_color_btn.grid(row=1, column=0, padx=10)
+
+            receive_color_btn = tk.Button(color_frame, text="Received Message Color", command=choose_receive_color, width=25)
+            receive_color_btn.grid(row=1, column=1, padx=10)
 
             def on_ok():
-                dialog.result = user_input.get()
+                dialog.result = (ip_var.get(), username_var.get())
                 dialog.destroy()
 
             def on_cancel():
@@ -46,133 +85,242 @@ class ChatClient:
             tk.Button(btn_frame, text="OK", command=on_ok, width=10).pack(side=tk.LEFT, padx=10)
             tk.Button(btn_frame, text="Cancel", command=on_cancel, width=10).pack(side=tk.RIGHT, padx=10)
 
-            parent.wait_window(dialog)
+            master.wait_window(dialog)
             return dialog.result
 
         self.master.withdraw()
 
-        # --- Get Server Info ---
-        self.host = custom_askstring("Other User Address", "Enter user IP:", parent=master)
-        if not self.host:
+        result = custom_askstring_and_colors()
+        if not result:
             master.destroy()
-            sys.exit("Connection cancelled by user.")
+            sys.exit("Startup cancelled.")
 
-        self.username = custom_askstring("Username", "Enter your username:", parent=master)
+        self.host, self.username = result
         if not self.username:
             self.username = f"User_{int(time.time()) % 10000}"
             messagebox.showwarning("Username", f"No username entered. Using default: {self.username}", parent=master)
 
-        # --- GUI Setup ---
         self.master.deiconify()
         master.title(f"Chat user - {self.username}")
-        master.geometry("600x550")  # Adjusted size
+        master.geometry("700x600")
 
-        # Frame for connection status/buttons (optional)
-        self.status_frame = tk.Frame(master)
-        self.status_frame.pack(pady=5)
+        self.main_frame = tk.Frame(master)
+        self.main_frame.pack(fill=tk.BOTH, expand=True)
+
+        self.toolbar = tk.Frame(self.main_frame, bg="#f7f7f7")
+        self.toolbar.pack(fill=tk.X, padx=5, pady=5)
+
+        self.color_button = tk.Button(self.toolbar, text="🎨 Bubble Colors", command=self.open_color_chooser)
+        self.color_button.pack(side=tk.LEFT, padx=5)
+
+        self.font_button = tk.Button(self.toolbar, text="🔤 Font Type", command=self.choose_font_family)
+        self.font_button.pack(side=tk.LEFT, padx=5)
+
+        self.size_button = tk.Button(self.toolbar, text="🔠 Font Size", command=self.choose_font_size)
+        self.size_button.pack(side=tk.LEFT, padx=5)
+
+        self.bg_color_button = tk.Button(self.toolbar, text="🎨 Chat Background", command=self.choose_bg_color)
+        self.bg_color_button.pack(side=tk.LEFT, padx=5)
+
+        self.theme_button = tk.Button(self.toolbar, text="🌓 Toggle Theme", command=self.toggle_theme)
+        self.theme_button.pack(side=tk.LEFT, padx=5)
+
+        self.status_frame = tk.Frame(self.main_frame)
+        self.status_frame.pack(fill=tk.X)
         self.status_label = tk.Label(self.status_frame, text="Status: Disconnected", fg="red")
-        self.status_label.pack()
+        self.status_label.pack(anchor='w', padx=10)
 
-        # Message display area
-        self.message_area = scrolledtext.ScrolledText(master, wrap=tk.WORD, state=tk.DISABLED)  # Start disabled
-        self.message_area.pack(padx=10, pady=10, expand=True, fill=tk.BOTH)
+        self.message_area = scrolledtext.ScrolledText(self.main_frame, wrap=tk.WORD, state=tk.DISABLED)
+        self.message_area.pack(padx=10, pady=(5, 0), expand=True, fill=tk.BOTH)
+        self.message_area.configure(font=(self.font_family, self.font_size), padx=10, pady=10)
 
-        # Input frame
-        self.input_frame = tk.Frame(master)
+        self.message_area.tag_configure("left_bubble", justify="left", lmargin1=10, lmargin2=10,
+                                        background=self.receive_color, spacing1=5, spacing3=5, wrap='word')
+        self.message_area.tag_configure("right_bubble", justify="right", rmargin=10,
+                                        background=self.send_color, spacing1=5, spacing3=5, wrap='word')
+
+        self.input_frame = tk.Frame(self.main_frame)
         self.input_frame.pack(padx=10, pady=10, fill=tk.X)
 
-        # Message entry field
-        self.message_entry = tk.Entry(self.input_frame, width=40)
-        self.message_entry.bind("<Return>", self.send_message_event)  # Send on Enter key
-        self.message_entry.pack(side=tk.LEFT, expand=True, fill=tk.X)
+        self.message_entry = tk.Entry(self.input_frame, font=(self.font_family, 14))
+        self.message_entry.bind("<Return>", self.send_message_event)
+        self.message_entry.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 5))
 
-        # Send button
         self.send_button = tk.Button(self.input_frame, text="Send", command=self.send_message_event)
-        self.send_button.pack(side=tk.RIGHT, padx=5)
+        self.send_button.pack(side=tk.RIGHT)
 
-        # Set focus to entry field initially
         self.message_entry.focus_set()
-
-        # Handle window closing
         master.protocol("WM_DELETE_WINDOW", self.on_closing)
 
-        # --- Start Connection ---
         self.connect_to_server()
 
+    def choose_bg_color(self):
+        color = colorchooser.askcolor(title="Choose Chat Background Color")[1]
+        if color:
+            self.bg_color = color
+            self.update_chat_bg_color()  # This updates the chat background to the new color
+
+    def update_chat_bg_color(self):
+        # Update the background color of various components to reflect the new color
+        self.master.configure(bg=self.bg_color)
+        self.main_frame.configure(bg=self.bg_color)
+        self.toolbar.configure(bg=self.bg_color)
+        self.status_frame.configure(bg=self.bg_color)
+        self.status_label.configure(bg=self.bg_color)
+        self.message_area.configure(bg=self.bg_color)
+        self.input_frame.configure(bg=self.bg_color)
+        self.message_entry.configure(bg=self.bg_color)
+
+    def choose_font_family(self):
+        families = list(font.families())
+        top = tk.Toplevel(self.master)
+        top.title("Choose Font Family")
+        listbox = tk.Listbox(top, width=50, height=20)
+        listbox.pack(padx=10, pady=10)
+        for fam in sorted(families):
+            listbox.insert(tk.END, fam)
+
+        def apply():
+            selected = listbox.get(tk.ACTIVE)
+            if selected:
+                self.font_family = selected
+                self.message_area.configure(font=(self.font_family, self.font_size))
+                self.message_entry.configure(font=(self.font_family, 14))
+            top.destroy()
+
+        tk.Button(top, text="Apply", command=apply).pack(pady=5)
+
+    def choose_font_size(self):
+        top = tk.Toplevel(self.master)
+        top.title("Choose Font Size")
+        scale = tk.Scale(top, from_=8, to=13, orient=tk.HORIZONTAL)  # Limit the font size to 16
+        scale.set(self.font_size)
+        scale.pack(padx=10, pady=10)
+
+        def apply():
+            self.font_size = scale.get()
+            self.message_area.configure(font=(self.font_family, self.font_size))
+            top.destroy()
+
+        tk.Button(top, text="Apply", command=apply).pack(pady=5)
+
+    def toggle_theme(self):
+        self.theme = "dark" if self.theme == "light" else "light"
+        self.update_bubble_colors()
+        self.update_theme_styles()
+
+    def update_bubble_colors(self):
+        if self.theme == "dark":
+            self.send_color = self.send_color_dark
+            self.receive_color = self.receive_color_dark
+        else:
+            self.send_color = self.send_color_light
+            self.receive_color = self.receive_color_light
+
+        self.message_area.tag_configure("right_bubble", background=self.send_color)
+        self.message_area.tag_configure("left_bubble", background=self.receive_color)
+
+    def update_theme_styles(self):
+        bg = self.bg_dark if self.theme == "dark" else self.bg_light
+        fg = self.text_dark if self.theme == "dark" else self.text_light
+
+        self.master.configure(bg=bg)
+        self.main_frame.configure(bg=bg)
+        self.toolbar.configure(bg=bg)
+        self.status_frame.configure(bg=bg)
+        self.status_label.configure(bg=bg, fg=fg)
+        self.message_area.configure(bg=bg, fg=fg, insertbackground=fg)
+        self.input_frame.configure(bg=bg)
+        self.message_entry.configure(bg=bg, fg=fg, insertbackground=fg)
+
+    def open_color_chooser(self):
+        def choose_send_color():
+            color = colorchooser.askcolor(title="Choose Sent Message Color")[1]
+            if color:
+                self.send_color = color
+                self.message_area.tag_configure("right_bubble", background=self.send_color)
+
+        def choose_receive_color():
+            color_tuple = colorchooser.askcolor(title="Choose Received Message Color")
+            color = color_tuple[1]  # The hex string like "#aabbcc"
+
+            if color is not None:
+                self.receive_color = color
+                self.message_area.tag_configure("left_bubble", background=self.receive_color)
+
+        chooser = tk.Toplevel(self.master)
+        chooser.title("Change Bubble Colors")
+        chooser.geometry("350x150")
+        chooser.grab_set()
+
+        tk.Label(chooser, text="Choose new bubble colors:", font=("Arial", 13)).pack(pady=10)
+
+        button_frame = tk.Frame(chooser)
+        button_frame.pack(pady=10)
+
+        tk.Button(button_frame, text="Sent Message Color", width=20, command=choose_send_color).pack(side=tk.LEFT, padx=10)
+        tk.Button(button_frame, text="Received Message Color", width=20, command=choose_receive_color).pack(side=tk.RIGHT, padx=10)
+
+        tk.Button(chooser, text="Close", command=chooser.destroy).pack(pady=10)
+
     def connect_to_server(self):
-        """Establishes connection to the server."""
         try:
             self.client_socket = PictureEncryptionSocket(self.host)
             self.display_message_local("System: Connecting...\n")
             self.client_socket.connect()
             self.is_connected = True
-            self.stop_thread = False  # Reset stop flag before starting thread
+            self.stop_thread = False
             self.status_label.config(text=f"Status: Connected to {self.host}", fg="green")
             self.display_message_local(f"System: Connected as {self.username}.\n")
 
-            # Start the receiving thread
             self.receive_thread = threading.Thread(target=self.receive_messages, daemon=True)
             self.receive_thread.start()
 
         except socket.timeout:
             self.display_message_local(f"System: Connection timed out. Could not reach {self.host}.\n")
-            messagebox.showerror("Connection Error", f"Connection timed out trying to reach {self.host}",
-                                 parent=self.master)
-            self.on_closing(show_error=False)  # Use closing logic to clean up
+            messagebox.showerror("Connection Error", f"Connection timed out trying to reach {self.host}", parent=self.master)
+            self.on_closing(show_error=False)
         except (socket.error, ConnectionRefusedError) as e:
             self.display_message_local(f"System: Connection error: {e}\n")
-            messagebox.showerror("Connection Error",
-                                 f"Could not connect to server at {self.host}\nError: {e}",
-                                 parent=self.master)
-            self.on_closing(show_error=False)  # Clean up
-        except Exception as e:  # Catch other potential errors during setup
+            messagebox.showerror("Connection Error", f"Could not connect to server at {self.host}\nError: {e}", parent=self.master)
+            self.on_closing(show_error=False)
+        except Exception as e:
             self.display_message_local(f"System: An unexpected error occurred: {e}\n")
             messagebox.showerror("Error", f"An unexpected error occurred:\n{e}", parent=self.master)
             self.on_closing(show_error=False)
 
     def receive_messages(self):
-        """Receives messages from the server in a separate thread."""
         while self.is_connected and not self.stop_thread:
             try:
                 message = self.client_socket.receive()
                 if not message:
-                    # Server disconnected gracefully
                     self.display_message_local("\nSystem: Server closed the connection.\n")
-                    # Schedule GUI update in main thread
                     self.master.after(0, self.handle_disconnection)
-                    break  # Exit thread loop
+                    break
 
-                # Decode and schedule display in main thread
                 decoded_message = message.decode(ENCODING)
-                # Schedule the display_message function to run in the main GUI thread
-                self.master.after(0, self.display_message_remote, decoded_message + "\n")
+                self.master.after(0, self.display_message_remote, decoded_message)
 
             except (socket.error, ConnectionResetError, BrokenPipeError) as e:
-                if not self.stop_thread:  # Don't show error if we initiated the closing
+                if not self.stop_thread:
                     self.display_message_local(f"\nSystem: Connection error: {e}\n")
-                    # Schedule GUI update in main thread
                     self.master.after(0, self.handle_disconnection)
-                break  # Exit thread loop
-            except Exception as e:  # Catch other potential errors during recv
+                break
+            except Exception as e:
                 if not self.stop_thread:
                     self.display_message_local(f"\nSystem: Error receiving message: {e}\n")
                     self.master.after(0, self.handle_disconnection)
-                break  # Exit thread loop
-
-        print("Receive thread finished.")  # Debug print
+                break
 
     def handle_disconnection(self):
-        """ Cleans up GUI state after disconnection, called from main thread """
-        if self.is_connected:  # Avoid multiple calls
+        if self.is_connected:
             self.is_connected = False
             self.status_label.config(text="Status: Disconnected", fg="red")
-            self.message_entry.config(state=tk.DISABLED)  # Disable input
-            self.send_button.config(state=tk.DISABLED)  # Disable send button
+            self.message_entry.config(state=tk.DISABLED)
+            self.send_button.config(state=tk.DISABLED)
             messagebox.showinfo("Disconnected", "Lost connection to the server.", parent=self.master)
-            # Don't close the socket here, on_closing handles that
 
-    def send_message_event(self, event=None):  # event=None allows calling it from button click too
-        """Gets message from entry field and sends it."""
+    def send_message_event(self, event=None):
         if not self.is_connected:
             messagebox.showwarning("Not Connected", "You are not connected to the server.", parent=self.master)
             return
@@ -180,16 +328,14 @@ class ChatClient:
         message = self.message_entry.get()
         if message:
             try:
-                # Prepend username to the message
-                full_message = f"{self.username}: {message}"
+                timestamp = datetime.now().strftime("%I:%M %p")
+                full_message = f"{self.username} [{timestamp}]: {message}"
                 self.client_socket.send(full_message.encode(ENCODING))
-                self.display_message_local(f"You: {message}\n")  # Display sent message locally
-                self.message_entry.delete(0, tk.END)  # Clear the entry field
+                self.display_message_local(f"You [{timestamp}]: {message}")
+                self.message_entry.delete(0, tk.END)
             except (socket.error, BrokenPipeError) as e:
                 self.display_message_local(f"\nSystem: Failed to send message: {e}\n")
-                # Disconnect if send fails critically
-                self.handle_disconnection()  # Update GUI state immediately
-                # Signal thread to stop and close socket (will happen in on_closing or when thread exits)
+                self.handle_disconnection()
                 self.stop_thread = True
                 if self.client_socket:
                     try:
@@ -199,53 +345,41 @@ class ChatClient:
                     self.client_socket = None
 
     def display_message_local(self, message):
-        """ Displays a message (e.g., system status, own messages) in the text area. """
-        # This can be called from the main thread directly
-        self.message_area.config(state=tk.NORMAL)  # Enable writing
-        self.message_area.insert(tk.END, message)
-        self.message_area.see(tk.END)  # Scroll to the bottom
-        self.message_area.config(state=tk.DISABLED)  # Disable writing
+        self.message_area.config(state=tk.NORMAL)
+        self.message_area.insert(tk.END, message + "\n", "right_bubble")
+        self.message_area.see(tk.END)
+        self.message_area.config(state=tk.DISABLED)
 
     def display_message_remote(self, message):
-        """ Displays a received message - MUST be called via root. after from receive thread. """
-        # This runs in the main thread
         self.message_area.config(state=tk.NORMAL)
-        self.message_area.insert(tk.END, message)
+        self.message_area.insert(tk.END, message + "\n", "left_bubble")
         self.message_area.see(tk.END)
         self.message_area.config(state=tk.DISABLED)
 
     def on_closing(self, show_error=True):
-        """Handles window closing: stops thread, closes socket, destroys window."""
         if show_error and self.is_connected:
             if not messagebox.askokcancel("Quit", "Do you want to disconnect and quit?", parent=self.master):
-                return  # User cancelled closing
+                return
 
-        print("Closing application...")
-        self.stop_thread = True  # Signal the receiving thread to stop
-        self.is_connected = False  # Update connection status
+        self.stop_thread = True
+        self.is_connected = False
 
         if self.client_socket:
             try:
-                # Optionally send a "disconnecting" message
-                # self.client_socket.sendall(f"{self.username} is disconnecting.".encode(ENCODING))
-                # Shutdown signals intent to close, can help unblock recv on server faster
-                self.client_socket.shutdown(socket.SHUT_RDWR)  # TODO
+                self.client_socket.shutdown(socket.SHUT_RDWR)
             except (socket.error, OSError):
-                print("Error during socket shutdown (already closed or broken?).")  # Ignore errors here
+                pass
             finally:
                 try:
                     self.client_socket.close()
                 except socket.error:
-                    pass  # Ignore if already closed
+                    pass
                 self.client_socket = None
-                print("Client socket closed.")
 
-        print("Destroying master window.")
         self.master.destroy()
         sys.exit(0)
 
-# --- Main Execution ---
 if __name__ == "__main__":
     root = tk.Tk()
     app = ChatClient(root)
-    root.mainloop()  # Start the Tkinter event loop
+    root.mainloop()
