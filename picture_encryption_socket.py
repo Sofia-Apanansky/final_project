@@ -1,7 +1,7 @@
 import os
 import shutil
 from queue import Queue
-from threading import Thread
+from threading import Thread, Event
 from typing import Final
 
 from PIL import Image
@@ -23,7 +23,7 @@ MAX_CONTENT_LENGTH: Final[int] = 115167
 
 class PictureEncryptionSocket:
     def __init__(self, peer_ip: str) -> None:
-        self.stop_event = None
+        self.stop_event = Event()
         self.peer_ip = peer_ip
         self.send_queue = Queue()
         self.recv_queue = Queue()
@@ -65,18 +65,6 @@ class PictureEncryptionSocket:
             self.receiver_thread.join(timeout=1)
         print("Connection closed.")
 
-#    def shutdown(self, socket:int) -> None:
-#        self.stop_event.set()
-
-#        if self.sender_thread.is_alive():
-#            self.send_queue.put(None)  # Unblock sender thread if waiting
-#            self.sender_thread.join(timeout=1)
-#            print("[INFO] Sender thread stopped.")
-
-#        if self.receiver_thread.is_alive():
-#            self.receiver_thread.join(timeout=1)
-#            print("[INFO] Receiver thread stopped.")
-
     def __send_loop(self):
         p = random_prime_number()
         g = random_prime_number()
@@ -98,7 +86,7 @@ class PictureEncryptionSocket:
         key_public_receiver = bytes_to_int(key_public_receiver)
         key = int_to_bytes(send_key.generate_full_key(key_public_receiver))
 
-        while True:
+        while not self.stop_event.is_set():
             temp_directory = create_random_name_directory(16, get_project_directory())
 
             content = self.send_queue.get()[:MAX_CONTENT_LENGTH]
@@ -128,6 +116,8 @@ class PictureEncryptionSocket:
 
             shutil.rmtree(temp_directory)
 
+        peer_send.close()
+
     def __receive_loop(self):
         key_private = random_prime_number()
         peer_receive = Peer2Peer(self.peer_ip, 5007, 5008)
@@ -148,7 +138,7 @@ class PictureEncryptionSocket:
 
         key = int_to_bytes(receive_key.generate_full_key(key_public_sender))
 
-        while True:
+        while not self.stop_event.is_set():
             temp_directory = create_random_name_directory(16, get_project_directory())
 
             parts_zip_path = temp_directory / generate_random_filename(16, 'zip')
@@ -194,3 +184,4 @@ class PictureEncryptionSocket:
             self.recv_queue.put(content.encode())
 
             shutil.rmtree(temp_directory)
+        peer_receive.close()

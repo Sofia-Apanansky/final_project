@@ -13,6 +13,7 @@ from picture_encryption_socket import PictureEncryptionSocket
 
 ENCODING = 'utf-8'
 
+
 class ChatClient:
     def __init__(self, master):
         self.is_saving_enabled = True  # Initially, saving is disabled
@@ -414,15 +415,10 @@ class ChatClient:
 
         if self.client_socket:
             try:
-                self.client_socket.shutdown(socket.SHUT_RDWR)
-            except (socket.error, OSError):
+                self.client_socket.close()
+            except socket.error:
                 pass
-            finally:
-                try:
-                    self.client_socket.close()
-                except socket.error:
-                    pass
-                self.client_socket = None
+            self.client_socket = None
 
         self.master.destroy()
         sys.exit(0)
