@@ -20,7 +20,7 @@ class ChatClient:
         self.bg_color = None
         self.username = None
         self.master = master
-        self.client_socket = None
+        self.user_socket = None
         self.receive_thread = None
         self.is_connected = False
         self.stop_thread = False
@@ -309,9 +309,9 @@ class ChatClient:
 
     def connect_to_server(self):
         try:
-            self.client_socket = PictureEncryptionSocket(self.host)
+            self.user_socket = PictureEncryptionSocket(self.host)
             self.display_message_local("System: Connecting...\n")
-            self.client_socket.connect()
+            self.user_socket.connect()
             self.is_connected = True
             self.stop_thread = False
             self.status_label.config(text=f"Status: Connected to {self.host}", fg="green")
@@ -336,7 +336,7 @@ class ChatClient:
     def receive_messages(self):
         while self.is_connected and not self.stop_thread:
             try:
-                message = self.client_socket.receive()
+                message = self.user_socket.receive()
                 if not message:
                     self.display_message_local("\nSystem: Server closed the connection.\n")
                     self.master.after(0, self.handle_disconnection)
@@ -374,19 +374,19 @@ class ChatClient:
             try:
                 timestamp = datetime.now().strftime("%I:%M %p")
                 full_message = f"{self.username} [{timestamp}]: {message}"
-                self.client_socket.send(full_message.encode(ENCODING))
+                self.user_socket.send(full_message.encode(ENCODING))
                 self.display_message_local(f"You [{timestamp}]: {message}")
                 self.message_entry.delete(0, tk.END)
             except (socket.error, BrokenPipeError) as e:
                 self.display_message_local(f"\nSystem: Failed to send message: {e}\n")
                 self.handle_disconnection()
                 self.stop_thread = True
-                if self.client_socket:
+                if self.user_socket:
                     try:
-                        self.client_socket.close()
+                        self.user_socket.close()
                     except socket.error:
                         pass
-                    self.client_socket = None
+                    self.user_socket = None
 
     def display_message_local(self, message):
         self.message_area.configure(state=tk.NORMAL)
@@ -402,7 +402,7 @@ class ChatClient:
 
     def send_message(self, message):
         self.display_message_local(f"{self.username}: {message}\n")
-        self.client_socket.send(message.encode("utf-8"))
+        self.user_socket.send(message.encode("utf-8"))
         self.message_entry.delete(0, tk.END)
 
     def on_closing(self, show_error=True):
@@ -413,15 +413,15 @@ class ChatClient:
         self.stop_thread = True
         self.is_connected = False
 
-        if self.client_socket:
+        if self.user_socket:
             try:
-                self.client_socket.close()
+                self.user_socket.close()
             except socket.error:
                 pass
-            self.client_socket = None
+            self.user_socket = None
 
         self.master.destroy()
-        sys.exit(0)
+
 
 if __name__ == "__main__":
     root = tk.Tk()
