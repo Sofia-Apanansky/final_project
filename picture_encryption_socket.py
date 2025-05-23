@@ -1,6 +1,8 @@
 import os
 import shutil
-from queue import Queue
+import sys
+from logging import exception
+from queue import Queue, Empty
 from threading import Thread, Event
 from typing import Final
 
@@ -29,7 +31,7 @@ class PictureEncryptionSocket:
         self.recv_queue = Queue()
         self.sender_thread = Thread()
         self.receiver_thread = Thread()
-        self.is_connected = False
+        self.is_connected = True #changed from False
 
     def connect(self) -> None:
         self.sender_thread = Thread(target=self.__send_loop)
@@ -55,9 +57,6 @@ class PictureEncryptionSocket:
             return
         self.is_connected = False
         self.stop_event.set()  # Signal threads to stop
-
-        self.send_queue.put(None)
-        self.recv_queue.put(b'')
 
         if self.sender_thread.is_alive():
             self.sender_thread.join(timeout=1)
@@ -87,10 +86,11 @@ class PictureEncryptionSocket:
         key = int_to_bytes(send_key.generate_full_key(key_public_receiver))
 
         while not self.stop_event.is_set():
+            try:
+                content = self.send_queue.get(timeout=1)[:MAX_CONTENT_LENGTH]
+            except Empty:
+                continue
             temp_directory = create_random_name_directory(16, get_project_directory())
-
-            content = self.send_queue.get()[:MAX_CONTENT_LENGTH]
-
             cipher = AESCipher(key)
             encrypted_content = cipher.encrypt(content.decode())
 
@@ -116,6 +116,7 @@ class PictureEncryptionSocket:
 
             shutil.rmtree(temp_directory)
 
+        print("111")
         peer_send.close()
 
     def __receive_loop(self):
@@ -184,4 +185,6 @@ class PictureEncryptionSocket:
             self.recv_queue.put(content.encode())
 
             shutil.rmtree(temp_directory)
+
+        print("222")
         peer_receive.close()
