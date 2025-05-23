@@ -37,7 +37,7 @@ class AESCipher:
 
     def __pad(self, plain_text: bytes) -> bytes:
         number_of_bytes_to_pad = self.block_size - len(plain_text) % self.block_size
-        ascii_string = chr(number_of_bytes_to_pad).encode()
+        ascii_string = chr(number_of_bytes_to_pad).encode('utf-16')
         padding_str = number_of_bytes_to_pad * ascii_string
         padded_plain_text = plain_text + padding_str
         return padded_plain_text
