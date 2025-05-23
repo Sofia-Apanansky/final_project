@@ -3,7 +3,7 @@ import threading
 import struct
 from idlelib.run import get_message_lines
 from pathlib import Path
-from queue import Queue
+from queue import Queue, Empty
 from time import sleep
 from typing import Final
 
@@ -98,7 +98,14 @@ class Peer2Peer:
         return data
 
     def get_message(self) -> bytes:
-        return self.received_messages_queue.get()
+        while self.running:
+            try:
+                return self.received_messages_queue.get(timeout=1)
+            except Empty:
+                continue
+
+        raise Exception("Connection closed")
+
 
     def close(self):
         """Close all sockets and stop the listener."""
