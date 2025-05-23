@@ -24,8 +24,8 @@ class AESCipher:
         iv, encrypted_text = self.__split_iv_and_encrypted_text(encrypted_text)
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
 
-        plain_text = cipher.decrypt(encrypted_text).decode('utf-8')
-        return self.__unpad(plain_text)
+        plain_text = cipher.decrypt(encrypted_text)
+        return self.__unpad(plain_text).decode('utf-16')
 
     def __generate_iv(self) -> bytes:
         return Random.new().read(self.block_size)
@@ -37,7 +37,7 @@ class AESCipher:
 
     def __pad(self, plain_text: bytes) -> bytes:
         number_of_bytes_to_pad = self.block_size - len(plain_text) % self.block_size
-        ascii_string = chr(number_of_bytes_to_pad)
+        ascii_string = chr(number_of_bytes_to_pad).encode()
         padding_str = number_of_bytes_to_pad * ascii_string
         padded_plain_text = plain_text + padding_str
         return padded_plain_text
