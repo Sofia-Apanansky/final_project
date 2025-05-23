@@ -1,6 +1,7 @@
 import hashlib
 from Crypto import Random
 from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad
 
 
 class AESCipher:
@@ -14,8 +15,9 @@ class AESCipher:
     def encrypt(self, plain_text: str) -> bytes:
         iv = self.__generate_iv()
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
-        plain_text = self.__pad(plain_text)
-        encrypted_text = cipher.encrypt(plain_text.encode('utf-16'))
+        encoded_text = plain_text.encode('utf-16')
+        encoded_text = self.__pad(encoded_text)
+        encrypted_text = cipher.encrypt(encoded_text)
         return iv + encrypted_text
 
     def decrypt(self, encrypted_text: bytes) -> str:
@@ -33,7 +35,7 @@ class AESCipher:
         encrypted_text_only = encrypted_text[self.block_size:]
         return iv, encrypted_text_only
 
-    def __pad(self, plain_text: str) -> str:
+    def __pad(self, plain_text: bytes) -> bytes:
         number_of_bytes_to_pad = self.block_size - len(plain_text) % self.block_size
         ascii_string = chr(number_of_bytes_to_pad)
         padding_str = number_of_bytes_to_pad * ascii_string
@@ -41,7 +43,7 @@ class AESCipher:
         return padded_plain_text
 
     @staticmethod
-    def __unpad(plain_text: str) -> str:
+    def __unpad(plain_text: bytes) -> bytes:
         last_character = plain_text[-1]
         number_of_bytes_to_remove = ord(last_character)
         return plain_text[:-number_of_bytes_to_remove]
