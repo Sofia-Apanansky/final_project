@@ -32,6 +32,8 @@ class PictureEncryptionSocket:
         self.sender_thread = Thread()
         self.receiver_thread = Thread()
         self.is_connected = True #changed from False
+        self.peer_send= None
+        self.peer_receive=None
 
     def connect(self) -> None:
         self.sender_thread = Thread(target=self.__send_loop)
@@ -50,13 +52,21 @@ class PictureEncryptionSocket:
     def receive(self) -> bytes:
         if not self.is_connected:
             raise Exception("Socket not connected")
-        return self.recv_queue.get()
+        while self.is_connected:
+            try:
+                return self.recv_queue.get(timeout=0.2)
+            except Empty:
+                continue
+        raise Exception("Connection closed")
 
     def close(self) -> None:
         if not self.is_connected:
             return
         self.is_connected = False
         self.stop_event.set()  # Signal threads to stop
+
+        self.peer_receive.close()
+        self.peer_send.close()
 
         if self.sender_thread.is_alive():
             self.sender_thread.join(timeout=1)
@@ -68,7 +78,7 @@ class PictureEncryptionSocket:
         p = random_prime_number()
         g = random_prime_number()
         private_key = random_prime_number()
-        peer_send = Peer2Peer(self.peer_ip, 5008, 5007)
+        self.peer_send = Peer2Peer(self.peer_ip, 5008, 5007)
 
         send_key = DH_Endpoint(p, g, private_key)
         public_key = send_key.generate_public_key()
@@ -77,11 +87,11 @@ class PictureEncryptionSocket:
         g = int_to_bytes(g)
         public_key = int_to_bytes(public_key)
 
-        peer_send.send_message(p)
-        peer_send.send_message(g)
-        peer_send.send_message(public_key)
+        self.peer_send.send_message(p)
+        self.peer_send.send_message(g)
+        self.peer_send.send_message(public_key)
 
-        key_public_receiver = peer_send.get_message()  # public_key_receiver
+        key_public_receiver = self.peer_send.get_message()  # public_key_receiver
         key_public_receiver = bytes_to_int(key_public_receiver)
         key = int_to_bytes(send_key.generate_full_key(key_public_receiver))
 
@@ -112,20 +122,19 @@ class PictureEncryptionSocket:
             parts_zip_path = temp_directory / generate_random_filename(16, 'zip')
             create_zip_file(parts_paths, parts_zip_path)
 
-            peer_send.send_file(parts_zip_path)  # send the zip in parts
+            self.peer_send.send_file(parts_zip_path)  # send the zip in parts
 
             shutil.rmtree(temp_directory)
 
-        print("111")
-        peer_send.close()
+        self.peer_send.close()
 
     def __receive_loop(self):
         key_private = random_prime_number()
-        peer_receive = Peer2Peer(self.peer_ip, 5007, 5008)
+        self.peer_receive = Peer2Peer(self.peer_ip, 5007, 5008)
 
-        p = peer_receive.get_message()
-        g = peer_receive.get_message()
-        key_public_sender = peer_receive.get_message()
+        p = self.peer_receive.get_message()
+        g = self.peer_receive.get_message()
+        key_public_sender = self.peer_receive.get_message()
 
         p = bytes_to_int(p)
         g = bytes_to_int(g)
@@ -135,7 +144,7 @@ class PictureEncryptionSocket:
         public_key = receive_key.generate_public_key()
 
         public_key = int_to_bytes(public_key)
-        peer_receive.send_message(public_key)
+        self.peer_receive.send_message(public_key)
 
         key = int_to_bytes(receive_key.generate_full_key(key_public_sender))
 
@@ -144,7 +153,7 @@ class PictureEncryptionSocket:
 
             parts_zip_path = temp_directory / generate_random_filename(16, 'zip')
 
-            peer_receive.get_file(parts_zip_path)
+            self.peer_receive.get_file(parts_zip_path)
 
             parts_directory = create_random_name_directory(16, temp_directory)
 
@@ -186,5 +195,5 @@ class PictureEncryptionSocket:
 
             shutil.rmtree(temp_directory)
 
-        print("222")
-        peer_receive.close()
+
+        self.peer_receive.close()
