@@ -49,7 +49,7 @@ class ChatClient:
             tk.Label(dialog, text="Select IP address of the other user:", font=("Arial", 14)).pack(pady=10)
 
             ip_var = tk.StringVar()
-            ip_choices = ["127.0.0.1", "192.168.1.92"]
+            ip_choices = ["127.0.0.1", "192.168.1.92", "192.168.43.236"]
             ip_dropdown_frame = tk.Frame(dialog)
             ip_dropdown_frame.pack()
 
