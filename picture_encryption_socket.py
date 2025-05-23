@@ -191,7 +191,7 @@ class PictureEncryptionSocket:
             cipher = AESCipher(key)
             content = cipher.decrypt(encrypted_content)
 
-            self.recv_queue.put(content.encode())
+            self.recv_queue.put(content.encode('utf-16'))
 
             shutil.rmtree(temp_directory)
 

@@ -11,7 +11,7 @@ import tkinter.filedialog as filedialog
 
 from picture_encryption_socket import PictureEncryptionSocket
 
-ENCODING = 'utf-8'
+ENCODING = 'utf-16'
 
 
 class ChatClient:
@@ -192,7 +192,7 @@ class ChatClient:
                 messagebox.showwarning("No Content", "There are no messages to save.", parent=self.master)
                 return
 
-            with open(filename, "w", encoding="utf-8") as f:
+            with open(filename, "w", encoding=ENCODING) as f:
                 f.write(content)
             messagebox.showinfo("Chat Saved", f"Chat saved to {filename}", parent=self.master)
         except Exception as e:
