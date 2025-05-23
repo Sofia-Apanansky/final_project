@@ -102,7 +102,7 @@ class PictureEncryptionSocket:
                 continue
             temp_directory = create_random_name_directory(16, get_project_directory())
             cipher = AESCipher(key)
-            encrypted_content = cipher.encrypt(content.decode())
+            encrypted_content = cipher.encrypt(content.decode('utf-16'))
 
             image_path = temp_directory / generate_random_filename(16, 'png')
             generate_random_image(image_path)

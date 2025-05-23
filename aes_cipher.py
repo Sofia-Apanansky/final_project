@@ -15,7 +15,7 @@ class AESCipher:
         iv = self.__generate_iv()
         cipher = AES.new(self.key, AES.MODE_CBC, iv)
         plain_text = self.__pad(plain_text)
-        encrypted_text = cipher.encrypt(plain_text.encode('utf-8'))
+        encrypted_text = cipher.encrypt(plain_text.encode('utf-16'))
         return iv + encrypted_text
 
     def decrypt(self, encrypted_text: bytes) -> str:
