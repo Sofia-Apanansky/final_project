@@ -2,7 +2,7 @@ import random
 import string
 from io import BytesIO
 from pathlib import Path
-
+from sympy import isprime, primitive_root
 from PIL import Image
 
 
@@ -70,6 +70,10 @@ def random_prime_number(min_digits=3, max_digits=5):
             primes.append(num)
     return random.choice(primes) if primes else None
 
+def find_primitive_root(p):
+    if not isprime(p):
+        raise ValueError("p must be a prime number.")
+    return primitive_root(p)
 
 def int_to_bytes(number: int) -> bytes:
     num_bytes = (number.bit_length() + 7) // 8

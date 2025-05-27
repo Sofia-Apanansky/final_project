@@ -17,7 +17,7 @@ from p2p import Peer2Peer
 from random_image import generate_random_image
 from steganography import hide_message_in_image, reveal_message_from_image
 from utils import (bytes_to_int, create_random_name_directory, generate_random_filename, get_project_directory,
-                   int_to_bytes, random_prime_number, row_and_column_to_str, str_to_row_and_column)
+                   int_to_bytes, random_prime_number, row_and_column_to_str, str_to_row_and_column, find_primitive_root)
 from zip_files import create_zip_file, extract_zip_file
 
 MAX_CONTENT_LENGTH: Final[int] = 115167
@@ -76,7 +76,7 @@ class PictureEncryptionSocket:
 
     def __send_loop(self):
         p = random_prime_number()
-        g = random_prime_number()
+        g = find_primitive_root(p)
         private_key = random_prime_number()
         self.peer_send = Peer2Peer(self.peer_ip, 5008, 5007)
 

@@ -49,12 +49,12 @@ class ChatClient:
             tk.Label(dialog, text="Select IP address of the other user:", font=("Arial", 14)).pack(pady=10)
 
             ip_var = tk.StringVar()
-            ip_choices = ["127.0.0.1", "192.168.1.92", "192.168.43.236"]
+            ip_choices = ["127.0.0.1"]
             ip_dropdown_frame = tk.Frame(dialog)
             ip_dropdown_frame.pack()
 
             ip_dropdown = ttk.Combobox(ip_dropdown_frame, textvariable=ip_var, values=ip_choices, font=("Arial", 13),
-                                       width=47)
+                                       width=47, state="readonly")
             ip_dropdown.pack(side=tk.LEFT, padx=(0, 5))
             ip_dropdown.set(ip_choices[0])  # Set default selection
 
