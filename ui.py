@@ -345,7 +345,7 @@ class ChatClient:
                 decoded_message = message.decode(ENCODING)
                 self.master.after(0, self.display_message_remote, decoded_message)
 
-            except (socket.error, ConnectionResetError, BrokenPipeError) as e:
+            except (socket.error, ConnectionResetError, BrokenPipeError, Exception) as e:
                 if not self.stop_thread:
                     self.display_message_local(f"\nSystem: Connection error: {e}\n")
                     self.master.after(0, self.handle_disconnection)
