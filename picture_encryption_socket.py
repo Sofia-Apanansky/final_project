@@ -3,6 +3,7 @@ import shutil
 import sys
 from logging import exception
 from queue import Empty, Queue
+from tempfile import gettempdir
 from threading import Event, Thread
 from typing import Final
 
@@ -17,7 +18,7 @@ from p2p import Peer2Peer
 from random_image import generate_random_image
 from steganography import hide_message_in_image, reveal_message_from_image
 from utils import (bytes_to_int, create_random_name_directory, find_primitive_root, generate_random_filename,
-                   get_project_directory, int_to_bytes, random_prime_number, row_and_column_to_str,
+                   get_temp_dir, int_to_bytes, random_prime_number, row_and_column_to_str,
                    str_to_row_and_column)
 from zip_files import create_zip_file, extract_zip_file
 
@@ -101,7 +102,7 @@ class PictureEncryptionSocket:
                 content = self.send_queue.get(timeout=1)[:MAX_CONTENT_LENGTH]
             except Empty:
                 continue
-            temp_directory = create_random_name_directory(16, get_project_directory())
+            temp_directory = create_random_name_directory(16, get_temp_dir())
             cipher = AESCipher(key)
             encrypted_content = cipher.encrypt(content.decode('utf-16'))
 
@@ -164,7 +165,7 @@ class PictureEncryptionSocket:
         key = int_to_bytes(receive_key.generate_full_key(key_public_sender))
 
         while not self.stop_event.is_set():
-            temp_directory = create_random_name_directory(16, get_project_directory())
+            temp_directory = create_random_name_directory(16, get_temp_dir())
 
             parts_zip_path = temp_directory / generate_random_filename(16, 'zip')
 

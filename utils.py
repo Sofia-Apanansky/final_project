@@ -2,14 +2,13 @@ import random
 import string
 from io import BytesIO
 from pathlib import Path
+from tempfile import gettempdir
 
 from PIL import Image
 from sympy import isprime, primitive_root
 
-
-def get_project_directory() -> Path:
-    return Path(__file__).parent
-
+def get_temp_dir()-> Path:
+    return Path(gettempdir())
 
 def generate_random_filename(n: int, ext: str = '') -> str:
     name = ''.join(random.choices(string.ascii_letters + string.digits, k=n))
