@@ -1,4 +1,5 @@
 from pathlib import Path
+
 from PIL import Image
 from PIL.ImageFile import ImageFile
 from PIL.PngImagePlugin import PngInfo

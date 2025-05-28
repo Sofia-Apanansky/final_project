@@ -1,13 +1,11 @@
-import tkinter as tk
-from tkinter import scrolledtext, colorchooser, font
 import socket
-import threading
 import sys
+import threading
 import time
-from tkinter import ttk
-from tkinter import messagebox
-from datetime import datetime
+import tkinter as tk
 import tkinter.filedialog as filedialog
+from datetime import datetime
+from tkinter import colorchooser, font, messagebox, scrolledtext, ttk
 
 from picture_encryption_socket import PictureEncryptionSocket
 
@@ -53,8 +51,14 @@ class ChatClient:
             ip_dropdown_frame = tk.Frame(dialog)
             ip_dropdown_frame.pack()
 
-            ip_dropdown = ttk.Combobox(ip_dropdown_frame, textvariable=ip_var, values=ip_choices, font=("Arial", 13),
-                                       width=47, state="readonly")
+            ip_dropdown = ttk.Combobox(
+                ip_dropdown_frame,
+                textvariable=ip_var,
+                values=ip_choices,
+                font=("Arial", 13),
+                width=47,
+                state="readonly",
+            )
             ip_dropdown.pack(side=tk.LEFT, padx=(0, 5))
             ip_dropdown.set(ip_choices[0])  # Set default selection
 
@@ -82,7 +86,9 @@ class ChatClient:
             send_color_btn = tk.Button(color_frame, text="Sent Message Color", command=choose_send_color, width=25)
             send_color_btn.grid(row=1, column=0, padx=10)
 
-            receive_color_btn = tk.Button(color_frame, text="Received Message Color", command=choose_receive_color, width=25)
+            receive_color_btn = tk.Button(
+                color_frame, text="Received Message Color", command=choose_receive_color, width=25
+            )
             receive_color_btn.grid(row=1, column=1, padx=10)
 
             def on_ok():
@@ -150,10 +156,19 @@ class ChatClient:
         self.message_area.pack(padx=10, pady=(5, 0), expand=True, fill=tk.BOTH)
         self.message_area.configure(font=(self.font_family, self.font_size), padx=10, pady=10)
 
-        self.message_area.tag_configure("left_bubble", justify="left", lmargin1=10, lmargin2=10,
-                                        background=self.receive_color, spacing1=5, spacing3=5, wrap='word')
-        self.message_area.tag_configure("right_bubble", justify="right", rmargin=10,
-                                        background=self.send_color, spacing1=5, spacing3=5, wrap='word')
+        self.message_area.tag_configure(
+            "left_bubble",
+            justify="left",
+            lmargin1=10,
+            lmargin2=10,
+            background=self.receive_color,
+            spacing1=5,
+            spacing3=5,
+            wrap='word',
+        )
+        self.message_area.tag_configure(
+            "right_bubble", justify="right", rmargin=10, background=self.send_color, spacing1=5, spacing3=5, wrap='word'
+        )
 
         self.input_frame = tk.Frame(self.main_frame)
         self.input_frame.pack(padx=10, pady=10, fill=tk.X)
@@ -178,7 +193,7 @@ class ChatClient:
             defaultextension=".txt",
             filetypes=[("Text Files", "*.txt")],
             initialfile=f"Chat_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.txt",  # Default name with timestamp
-            title="Save Chat As"
+            title="Save Chat As",
         )
 
         # If the user cancels the dialog (filename is an empty string), use the default timestamp name
@@ -302,8 +317,12 @@ class ChatClient:
         button_frame = tk.Frame(chooser)
         button_frame.pack(pady=10)
 
-        tk.Button(button_frame, text="Sent Message Color", width=20, command=choose_send_color).pack(side=tk.LEFT, padx=10)
-        tk.Button(button_frame, text="Received Message Color", width=20, command=choose_receive_color).pack(side=tk.RIGHT, padx=10)
+        tk.Button(button_frame, text="Sent Message Color", width=20, command=choose_send_color).pack(
+            side=tk.LEFT, padx=10
+        )
+        tk.Button(button_frame, text="Received Message Color", width=20, command=choose_receive_color).pack(
+            side=tk.RIGHT, padx=10
+        )
 
         tk.Button(chooser, text="Close", command=chooser.destroy).pack(pady=10)
 
@@ -322,11 +341,15 @@ class ChatClient:
 
         except socket.timeout:
             self.display_message_local(f"System: Connection timed out. Could not reach {self.host}.\n")
-            messagebox.showerror("Connection Error", f"Connection timed out trying to reach {self.host}", parent=self.master)
+            messagebox.showerror(
+                "Connection Error", f"Connection timed out trying to reach {self.host}", parent=self.master
+            )
             self.on_closing(show_error=False)
         except (socket.error, ConnectionRefusedError) as e:
             self.display_message_local(f"System: Connection error: {e}\n")
-            messagebox.showerror("Connection Error", f"Could not connect to server at {self.host}\nError: {e}", parent=self.master)
+            messagebox.showerror(
+                "Connection Error", f"Could not connect to server at {self.host}\nError: {e}", parent=self.master
+            )
             self.on_closing(show_error=False)
         except Exception as e:
             self.display_message_local(f"System: An unexpected error occurred: {e}\n")

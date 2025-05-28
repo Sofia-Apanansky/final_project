@@ -4,7 +4,7 @@ from pathlib import Path
 import requests
 from PIL import Image
 
-from utils import jpg_to_png, generate_random_color
+from utils import generate_random_color, jpg_to_png
 
 API_KEY = ""  # Fixme store in another place
 API_NINJAS_RANDOM_IMAGE_ENDPOINT = "https://api.api-ninjas.com/v1/randomimage?width={width}&height={height}"

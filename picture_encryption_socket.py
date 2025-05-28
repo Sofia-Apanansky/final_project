@@ -2,8 +2,8 @@ import os
 import shutil
 import sys
 from logging import exception
-from queue import Queue, Empty
-from threading import Thread, Event
+from queue import Empty, Queue
+from threading import Event, Thread
 from typing import Final
 
 from PIL import Image
@@ -16,8 +16,9 @@ from image_split import restore_image, split_image
 from p2p import Peer2Peer
 from random_image import generate_random_image
 from steganography import hide_message_in_image, reveal_message_from_image
-from utils import (bytes_to_int, create_random_name_directory, generate_random_filename, get_project_directory,
-                   int_to_bytes, random_prime_number, row_and_column_to_str, str_to_row_and_column, find_primitive_root)
+from utils import (bytes_to_int, create_random_name_directory, find_primitive_root, generate_random_filename,
+                   get_project_directory, int_to_bytes, random_prime_number, row_and_column_to_str,
+                   str_to_row_and_column)
 from zip_files import create_zip_file, extract_zip_file
 
 MAX_CONTENT_LENGTH: Final[int] = 115167
@@ -127,18 +128,20 @@ class PictureEncryptionSocket:
             shutil.rmtree(temp_directory)
 
         self.peer_send.close()
+
     def __safe_receive_loop(self):
         try:
             self.__receive_loop()
         except:
             self.stop_event.set()
-            self.is_connected= False
+            self.is_connected = False
+
     def __safe_send_loop(self):
         try:
             self.__send_loop()
         except:
             self.stop_event.set()
-            self.is_connected= False
+            self.is_connected = False
 
     def __receive_loop(self):
         key_private = random_prime_number()
@@ -206,6 +209,5 @@ class PictureEncryptionSocket:
             self.recv_queue.put(content.encode('utf-16'))
 
             shutil.rmtree(temp_directory)
-
 
         self.peer_receive.close()

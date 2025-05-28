@@ -1,8 +1,8 @@
 import socket
-import threading
 import struct
+import threading
 from pathlib import Path
-from queue import Queue, Empty
+from queue import Empty, Queue
 from time import sleep
 from typing import Final
 
@@ -105,7 +105,6 @@ class Peer2Peer:
                 continue
 
         raise Exception("Connection closed")
-
 
     def close(self):
         """Close all sockets and stop the listener."""
