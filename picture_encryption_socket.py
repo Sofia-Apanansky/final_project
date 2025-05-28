@@ -31,13 +31,13 @@ class PictureEncryptionSocket:
         self.recv_queue = Queue()
         self.sender_thread = Thread()
         self.receiver_thread = Thread()
-        self.is_connected = True #changed from False
-        self.peer_send= None
-        self.peer_receive=None
+        self.is_connected = True  # changed from False
+        self.peer_send = None
+        self.peer_receive = None
 
     def connect(self) -> None:
-        self.sender_thread = Thread(target=self.__send_loop)
-        self.receiver_thread = Thread(target=self.__receive_loop)
+        self.sender_thread = Thread(target=self.__safe_send_loop)
+        self.receiver_thread = Thread(target=self.__safe_receive_loop)
 
         self.sender_thread.start()
         self.receiver_thread.start()
@@ -127,6 +127,18 @@ class PictureEncryptionSocket:
             shutil.rmtree(temp_directory)
 
         self.peer_send.close()
+    def __safe_receive_loop(self):
+        try:
+            self.__receive_loop()
+        except:
+            self.stop_event.set()
+            self.is_connected= False
+    def __safe_send_loop(self):
+        try:
+            self.__send_loop()
+        except:
+            self.stop_event.set()
+            self.is_connected= False
 
     def __receive_loop(self):
         key_private = random_prime_number()
