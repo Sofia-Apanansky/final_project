@@ -1,7 +1,6 @@
 import socket
 import threading
 import struct
-from idlelib.run import get_message_lines
 from pathlib import Path
 from queue import Queue, Empty
 from time import sleep
@@ -85,6 +84,7 @@ class Peer2Peer:
 
             except Exception as e:
                 print(f"Error receiving message: {e}")
+        self.close()
 
     def _recv_exactly(self, size: int) -> bytes:
         """Helper function to receive exactly 'size' bytes."""

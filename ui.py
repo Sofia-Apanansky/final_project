@@ -49,7 +49,7 @@ class ChatClient:
             tk.Label(dialog, text="Select IP address of the other user:", font=("Arial", 14)).pack(pady=10)
 
             ip_var = tk.StringVar()
-            ip_choices = ["127.0.0.1"]
+            ip_choices = ["127.0.0.1", "192.168.1.92"]
             ip_dropdown_frame = tk.Frame(dialog)
             ip_dropdown_frame.pack()
 
@@ -336,7 +336,9 @@ class ChatClient:
     def receive_messages(self):
         while self.is_connected and not self.stop_thread:
             try:
+                print(333)
                 message = self.user_socket.receive()
+                print(222)
                 if not message:
                     self.display_message_local("\nSystem: Server closed the connection.\n")
                     self.master.after(0, self.handle_disconnection)
@@ -346,10 +348,13 @@ class ChatClient:
                 self.master.after(0, self.display_message_remote, decoded_message)
 
             except (socket.error, ConnectionResetError, BrokenPipeError, Exception) as e:
+                print(1)
                 if not self.stop_thread:
+                    print(2)
                     self.display_message_local(f"\nSystem: Connection error: {e}\n")
                     self.master.after(0, self.handle_disconnection)
                 break
+
             except Exception as e:
                 if not self.stop_thread:
                     self.display_message_local(f"\nSystem: Error receiving message: {e}\n")
@@ -402,7 +407,7 @@ class ChatClient:
 
     def send_message(self, message):
         self.display_message_local(f"{self.username}: {message}\n")
-        self.user_socket.send(message.encode("utf-8"))
+        self.user_socket.send(message.encode(ENCODING))
         self.message_entry.delete(0, tk.END)
 
     def on_closing(self, show_error=True):
