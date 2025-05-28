@@ -1,9 +1,6 @@
 import os
 import shutil
-import sys
-from logging import exception
 from queue import Empty, Queue
-from tempfile import gettempdir
 from threading import Event, Thread
 from typing import Final
 
