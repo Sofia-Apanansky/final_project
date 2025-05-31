@@ -1,3 +1,4 @@
+import ipaddress
 import socket
 import sys
 import threading
@@ -47,7 +48,24 @@ class ChatClient:
             tk.Label(dialog, text="Select IP address of the other user:", font=("Arial", 14)).pack(pady=10)
 
             ip_var = tk.StringVar()
-            ip_choices = ["127.0.0.1", "192.168.1.92"]
+            ip_choices = []
+
+            try:
+                with open("ip_list.txt", "r") as f:
+                    for line in f:
+                        ip = line.strip()
+                        try:
+                            ipaddress.ip_address(ip)
+                            ip_choices.append(ip)
+                        except ValueError:
+                            continue  # Skip invalid IPs
+            except FileNotFoundError:
+                messagebox.showerror("File Not Found", "The file 'ips.txt' was not found.", parent=dialog)
+
+            if not ip_choices:
+                messagebox.showerror("No Valid IPs", "No valid IP addresses found in 'ips.txt'. Please check the file.",
+                                     parent=dialog)
+
             ip_dropdown_frame = tk.Frame(dialog)
             ip_dropdown_frame.pack()
 
@@ -252,7 +270,7 @@ class ChatClient:
     def choose_font_size(self):
         top = tk.Toplevel(self.master)
         top.title("Choose Font Size")
-        scale = tk.Scale(top, from_=8, to=13, orient=tk.HORIZONTAL)  # Limit the font size to 16
+        scale = tk.Scale(top, from_=8, to=14, orient=tk.HORIZONTAL)  # Limit the font size to 16
         scale.set(self.font_size)
         scale.pack(padx=10, pady=10)
 
