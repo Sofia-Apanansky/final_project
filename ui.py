@@ -377,9 +377,7 @@ class ChatClient:
     def receive_messages(self):
         while self.is_connected and not self.stop_thread:
             try:
-                print(333)
                 message = self.user_socket.receive()
-                print(222)
                 if not message:
                     self.display_message_local("\nSystem: Server closed the connection.\n")
                     self.master.after(0, self.handle_disconnection)
@@ -389,9 +387,7 @@ class ChatClient:
                 self.master.after(0, self.display_message_remote, decoded_message)
 
             except (socket.error, ConnectionResetError, BrokenPipeError, Exception) as e:
-                print(1)
                 if not self.stop_thread:
-                    print(2)
                     self.display_message_local(f"\nSystem: Connection error: {e}\n")
                     self.master.after(0, self.handle_disconnection)
                 break
