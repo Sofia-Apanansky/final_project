@@ -1,3 +1,4 @@
+# Imports for GUI, networking, encryption socket wrapper, and utilities
 import ipaddress
 import socket
 import sys
@@ -8,14 +9,17 @@ import tkinter.filedialog as filedialog
 from datetime import datetime
 from tkinter import colorchooser, font, messagebox, scrolledtext, ttk
 
-from picture_encryption_socket import PictureEncryptionSocket
+from picture_encryption_socket import PictureEncryptionSocket  # Custom socket with encryption and steganography
 
-ENCODING = 'utf-16'
+ENCODING = 'utf-16'  # Encoding used for sending and receiving messages
 
 
+# ChatClient is the main GUI application class for managing the chat interface, sending/receiving messages,
+# and configuring appearance options.
 class ChatClient:
     def __init__(self, master):
-        self.is_saving_enabled = True  # Initially, saving is disabled
+        # --- Initial Configuration ---
+        self.is_saving_enabled = True  # Whether chat saving is allowed
         self.bg_color = None
         self.username = None
         self.master = master
@@ -24,7 +28,8 @@ class ChatClient:
         self.is_connected = False
         self.stop_thread = False
 
-        self.theme = "light"  # Default theme
+        # --- Theme & Appearance Settings ---
+        self.theme = "light"
         self.send_color_light = "#c8e6c9"
         self.receive_color_light = "#e1f5fe"
         self.send_color_dark = "#4caf50"
@@ -33,20 +38,21 @@ class ChatClient:
         self.bg_dark = "#2b2b2b"
         self.text_light = "#000000"
         self.text_dark = "#ffffff"
-
         self.send_color = self.send_color_light
         self.receive_color = self.receive_color_light
         self.font_family = "Segue UI"
         self.font_size = 11
 
+        # --- Configuration Prompt (Before Chat Window Launches) ---
+        # Allows user to select IP, enter a username, and choose initial bubble colors
         def custom_askstring_and_colors():
             dialog = tk.Toplevel(master)
             dialog.title("Chat Configuration")
             dialog.geometry("700x400")
             dialog.grab_set()
 
+            # --- IP Selection ---
             tk.Label(dialog, text="Select IP address of the other user:", font=("Arial", 14)).pack(pady=10)
-
             ip_var = tk.StringVar()
             ip_choices = []
 
@@ -58,7 +64,7 @@ class ChatClient:
                             ipaddress.ip_address(ip)
                             ip_choices.append(ip)
                         except ValueError:
-                            continue  # Skip invalid IPs
+                            continue
             except FileNotFoundError:
                 messagebox.showerror("File Not Found", "The file 'ips.txt' was not found.", parent=dialog)
 
@@ -78,15 +84,16 @@ class ChatClient:
                 state="readonly",
             )
             ip_dropdown.pack(side=tk.LEFT, padx=(0, 5))
-            ip_dropdown.set(ip_choices[0])  # Set default selection
+            ip_dropdown.set(ip_choices[0])
 
+            # --- Username Entry ---
             tk.Label(dialog, text="Enter your username:", font=("Arial", 14)).pack(pady=10)
             username_var = tk.StringVar()
             tk.Entry(dialog, textvariable=username_var, font=("Arial", 13), width=50).pack()
 
+            # --- Color Picker ---
             color_frame = tk.Frame(dialog)
             color_frame.pack(pady=20)
-
             tk.Label(color_frame, text="Bubble Colors:", font=("Arial", 13)).grid(row=0, columnspan=2, pady=5)
 
             def choose_send_color():
@@ -104,11 +111,10 @@ class ChatClient:
             send_color_btn = tk.Button(color_frame, text="Sent Message Color", command=choose_send_color, width=25)
             send_color_btn.grid(row=1, column=0, padx=10)
 
-            receive_color_btn = tk.Button(
-                color_frame, text="Received Message Color", command=choose_receive_color, width=25
-            )
+            receive_color_btn = tk.Button(color_frame, text="Received Message Color", command=choose_receive_color, width=25)
             receive_color_btn.grid(row=1, column=1, padx=10)
 
+            # --- OK/Cancel Buttons ---
             def on_ok():
                 dialog.result = (ip_var.get(), username_var.get())
                 dialog.destroy()
@@ -125,8 +131,8 @@ class ChatClient:
             master.wait_window(dialog)
             return dialog.result
 
+        # Hide main window until configuration is done
         self.master.withdraw()
-
         result = custom_askstring_and_colors()
         if not result:
             master.destroy()
@@ -141,12 +147,14 @@ class ChatClient:
         master.title(f"Chat user - {self.username}")
         master.geometry("700x600")
 
+        # --- GUI Layout Setup ---
         self.main_frame = tk.Frame(master)
         self.main_frame.pack(fill=tk.BOTH, expand=True)
 
         self.toolbar = tk.Frame(self.main_frame, bg="#f7f7f7")
         self.toolbar.pack(fill=tk.X, padx=5, pady=5)
 
+        # Toolbar buttons for customization and saving
         self.color_button = tk.Button(self.toolbar, text="🎨 Bubble Colors", command=self.open_color_chooser)
         self.color_button.pack(side=tk.LEFT, padx=5)
 
@@ -165,47 +173,40 @@ class ChatClient:
         self.save_button = tk.Button(self.toolbar, text="💲 Save Chat", command=self.save_chat_to_file)
         self.save_button.pack(side=tk.LEFT, padx=5)
 
+        # Status label for connection updates
         self.status_frame = tk.Frame(self.main_frame)
         self.status_frame.pack(fill=tk.X)
         self.status_label = tk.Label(self.status_frame, text="Status: Disconnected", fg="red")
         self.status_label.pack(anchor='w', padx=10)
 
+        # Message display area (read-only)
         self.message_area = scrolledtext.ScrolledText(self.main_frame, wrap=tk.WORD, state=tk.DISABLED)
         self.message_area.pack(padx=10, pady=(5, 0), expand=True, fill=tk.BOTH)
         self.message_area.configure(font=(self.font_family, self.font_size), padx=10, pady=10)
 
-        self.message_area.tag_configure(
-            "left_bubble",
-            justify="left",
-            lmargin1=10,
-            lmargin2=10,
-            background=self.receive_color,
-            spacing1=5,
-            spacing3=5,
-            wrap='word',
-        )
-        self.message_area.tag_configure(
-            "right_bubble", justify="right", rmargin=10, background=self.send_color, spacing1=5, spacing3=5, wrap='word'
-        )
+        # Message bubble formatting
+        self.message_area.tag_configure("left_bubble", justify="left", lmargin1=10, lmargin2=10,
+                                        background=self.receive_color, spacing1=5, spacing3=5, wrap='word')
+        self.message_area.tag_configure("right_bubble", justify="right", rmargin=10,
+                                        background=self.send_color, spacing1=5, spacing3=5, wrap='word')
 
+        # Input box + Send button
         self.input_frame = tk.Frame(self.main_frame)
         self.input_frame.pack(padx=10, pady=10, fill=tk.X)
-
         self.message_entry = tk.Entry(self.input_frame, font=(self.font_family, 14))
         self.message_entry.bind("<Return>", self.send_message_event)
         self.message_entry.pack(side=tk.LEFT, expand=True, fill=tk.X, padx=(0, 5))
-
         self.send_button = tk.Button(self.input_frame, text="Send", command=self.send_message_event)
         self.send_button.pack(side=tk.RIGHT)
 
         self.message_entry.focus_set()
         master.protocol("WM_DELETE_WINDOW", self.on_closing)
 
+        # Begin connection process
         self.connect_to_server()
 
+    # --- File Saving ---
     def save_chat_to_file(self):
-        print("Save chat method triggered.")  # Debugging line
-
         # Ask the user for a filename and location (using a file dialog)
         filename = filedialog.asksaveasfilename(
             defaultextension=".txt",
@@ -213,29 +214,25 @@ class ChatClient:
             initialfile=f"Chat_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.txt",  # Default name with timestamp
             title="Save Chat As",
         )
-
-        # If the user cancels the dialog (filename is an empty string), use the default timestamp name
         if not filename:
-            # Use the default filename
             filename = f"Chat_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.txt"
-
         try:
             content = self.message_area.get("1.0", tk.END).strip()
             if not content:
                 messagebox.showwarning("No Content", "There are no messages to save.", parent=self.master)
                 return
-
             with open(filename, "w", encoding=ENCODING) as f:
                 f.write(content)
             messagebox.showinfo("Chat Saved", f"Chat saved to {filename}", parent=self.master)
         except Exception as e:
             messagebox.showerror("Save Error", f"Failed to save chat:\n{e}", parent=self.master)
 
+    # --- UI Customization ---
     def choose_bg_color(self):
         color = colorchooser.askcolor(title="Choose Chat Background Color")[1]
         if color:
             self.bg_color = color
-            self.update_chat_bg_color()  # This updates the chat background to the new color
+            self.update_chat_bg_color()
 
     def update_chat_bg_color(self):
         # Update the background color of various components to reflect the new color
@@ -270,7 +267,7 @@ class ChatClient:
     def choose_font_size(self):
         top = tk.Toplevel(self.master)
         top.title("Choose Font Size")
-        scale = tk.Scale(top, from_=8, to=14, orient=tk.HORIZONTAL)  # Limit the font size to 16
+        scale = tk.Scale(top, from_=8, to=14, orient=tk.HORIZONTAL)
         scale.set(self.font_size)
         scale.pack(padx=10, pady=10)
 
@@ -287,13 +284,8 @@ class ChatClient:
         self.update_theme_styles()
 
     def update_bubble_colors(self):
-        if self.theme == "dark":
-            self.send_color = self.send_color_dark
-            self.receive_color = self.receive_color_dark
-        else:
-            self.send_color = self.send_color_light
-            self.receive_color = self.receive_color_light
-
+        self.send_color = self.send_color_dark if self.theme == "dark" else self.send_color_light
+        self.receive_color = self.receive_color_dark if self.theme == "dark" else self.receive_color_light
         self.message_area.tag_configure("right_bubble", background=self.send_color)
         self.message_area.tag_configure("left_bubble", background=self.receive_color)
 
@@ -311,6 +303,7 @@ class ChatClient:
         self.message_entry.configure(bg=bg, fg=fg, insertbackground=fg)
 
     def open_color_chooser(self):
+        # Color chooser for message bubbles
         def choose_send_color():
             color = colorchooser.askcolor(title="Choose Sent Message Color")[1]
             if color:
@@ -318,10 +311,8 @@ class ChatClient:
                 self.message_area.tag_configure("right_bubble", background=self.send_color)
 
         def choose_receive_color():
-            color_tuple = colorchooser.askcolor(title="Choose Received Message Color")
-            color = color_tuple[1]  # The hex string like "#aabbcc"
-
-            if color is not None:
+            color = colorchooser.askcolor(title="Choose Received Message Color")[1]
+            if color:
                 self.receive_color = color
                 self.message_area.tag_configure("left_bubble", background=self.receive_color)
 
@@ -331,19 +322,14 @@ class ChatClient:
         chooser.grab_set()
 
         tk.Label(chooser, text="Choose new bubble colors:", font=("Arial", 13)).pack(pady=10)
-
         button_frame = tk.Frame(chooser)
         button_frame.pack(pady=10)
 
-        tk.Button(button_frame, text="Sent Message Color", width=20, command=choose_send_color).pack(
-            side=tk.LEFT, padx=10
-        )
-        tk.Button(button_frame, text="Received Message Color", width=20, command=choose_receive_color).pack(
-            side=tk.RIGHT, padx=10
-        )
-
+        tk.Button(button_frame, text="Sent Message Color", width=20, command=choose_send_color).pack(side=tk.LEFT, padx=10)
+        tk.Button(button_frame, text="Received Message Color", width=20, command=choose_receive_color).pack(side=tk.RIGHT, padx=10)
         tk.Button(chooser, text="Close", command=chooser.destroy).pack(pady=10)
 
+    # --- Networking: Connect to Other User Using PictureEncryptionSocket ---
     def connect_to_server(self):
         try:
             self.user_socket = PictureEncryptionSocket(self.host)
@@ -374,6 +360,7 @@ class ChatClient:
             messagebox.showerror("Error", f"An unexpected error occurred:\n{e}", parent=self.master)
             self.on_closing(show_error=False)
 
+    # --- Receiving Messages from Socket in Background Thread ---
     def receive_messages(self):
         while self.is_connected and not self.stop_thread:
             try:
